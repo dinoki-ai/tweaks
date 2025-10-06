@@ -155,6 +155,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       return
     }
 
+    // Ensure Osaurus is running before attempting to process text
+    guard Osaurus.isRunning() else {
+      if DebugHelpers.isDebugBuild {
+        print("[Tweaks] Osaurus not running. Aborting tweak.")
+      }
+      return
+    }
+
     let pasteboard = NSPasteboard.general
 
     // Check if clipboard contains text
@@ -168,7 +176,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       // Create tweak using Osaurus on a background task (streaming)
       Task {
         do {
-          let client = try Osaurus()
+          let client = try Osaurus.make()
           let (model, systemPrompt, temperature): (String, String, Double) = await MainActor.run {
             let settings = SettingsManager.shared
             let model = settings.selectedModelId

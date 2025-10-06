@@ -11,27 +11,7 @@ import SwiftUI
 
 // MARK: - Data Models
 
-struct OsaurusModel: Codable, Identifiable, Hashable {
-  let id: String
-  let object: String?
-  let created: Int?
-  let owned_by: String?
-
-  var displayName: String {
-    // Extract clean model name for display
-    id.replacingOccurrences(of: "llama-", with: "Llama ")
-      .replacingOccurrences(of: "-", with: " ")
-      .replacingOccurrences(of: "instruct", with: "Instruct")
-      .replacingOccurrences(of: "4bit", with: "(4-bit)")
-      .replacingOccurrences(of: "8bit", with: "(8-bit)")
-      .replacingOccurrences(of: "fp16", with: "(FP16)")
-  }
-}
-
-struct OsaurusModelsResponse: Codable {
-  let object: String?
-  let data: [OsaurusModel]
-}
+// Moved Osaurus model types into `Osaurus.swift`
 
 struct SystemPrompt: Codable, Identifiable {
   let id: UUID
@@ -89,24 +69,9 @@ class SettingsManager: ObservableObject {
     modelsFetchError = nil
 
     do {
-      let client = try Osaurus()
-      let url = client.baseURL.appendingPathComponent("/v1/models")
-
-      var request = URLRequest(url: url)
-      if let key = ProcessInfo.processInfo.environment["OSAURUS_API_KEY"], !key.isEmpty {
-        request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-      }
-
-      let (data, response) = try await URLSession.shared.data(for: request)
-
-      guard let httpResponse = response as? HTTPURLResponse,
-        (200...299).contains(httpResponse.statusCode)
-      else {
-        throw OsaurusError.httpError((response as? HTTPURLResponse)?.statusCode ?? 0)
-      }
-
-      let modelsResponse = try JSONDecoder().decode(OsaurusModelsResponse.self, from: data)
-      availableModels = modelsResponse.data.sorted { $0.id < $1.id }
+      let client = try Osaurus.make()
+      let models = try await client.listModels()
+      availableModels = models.sorted { $0.id < $1.id }
 
       // Validate selected model still exists
       if !availableModels.contains(where: { $0.id == selectedModelId }) {

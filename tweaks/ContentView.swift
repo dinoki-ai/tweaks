@@ -110,6 +110,9 @@ struct ContentView: View {
 struct HeaderView: View {
   let permissionStatus: AccessibilityStatus
   @Binding var selectedTab: Int
+  @State private var isOsaurusRunning: Bool = false
+  @State private var checkTimer: Timer?
+  @State private var previousActiveState: Bool = false
 
   var body: some View {
     VStack(spacing: 0) {
@@ -146,10 +149,25 @@ struct HeaderView: View {
         Spacer()
 
         // Status Indicator
-        StatusIndicator(status: permissionStatus)
+        StatusIndicator(status: permissionStatus, isOsaurusRunning: isOsaurusRunning)
       }
       .padding(.horizontal, 20)
       .padding(.vertical, 16)
+      .onAppear {
+        checkOsaurus()
+        startPeriodicCheck()
+      }
+      .onDisappear {
+        stopPeriodicCheck()
+      }
+      .onChange(of: permissionStatus) { oldValue, newValue in
+        // When permission status changes, re-evaluate active state
+        let nowActive = isActive
+        if nowActive != previousActiveState {
+          handleActiveStatusChange(nowActive: nowActive)
+          previousActiveState = nowActive
+        }
+      }
 
       // Tab Bar
       FuturisticSegmentedControl(
@@ -174,26 +192,105 @@ struct HeaderView: View {
 
 struct StatusIndicator: View {
   let status: AccessibilityStatus
+  let isOsaurusRunning: Bool
+
+  private var isActive: Bool {
+    status == .granted && isOsaurusRunning
+  }
+
+  private var statusColor: Color {
+    isActive ? .green : .red
+  }
 
   var body: some View {
     HStack(spacing: 6) {
       Circle()
-        .fill(status.color)
+        .fill(statusColor)
         .frame(width: 8, height: 8)
-        .neonGlow(color: status.color, radius: 4)
+        .neonGlow(color: statusColor, radius: 4)
 
-      Text(status == .granted ? "Active" : "Inactive")
+      Text(isActive ? "Active" : "Inactive")
         .font(.system(size: 11, weight: .medium))
-        .foregroundColor(status.color)
+        .foregroundColor(statusColor)
     }
     .padding(.horizontal, 12)
     .padding(.vertical, 6)
-    .background(status.color.opacity(0.1))
+    .background(statusColor.opacity(0.1))
     .cornerRadius(20)
     .overlay(
       RoundedRectangle(cornerRadius: 20)
-        .stroke(status.color.opacity(0.3), lineWidth: 1)
+        .stroke(statusColor.opacity(0.3), lineWidth: 1)
     )
+  }
+}
+
+extension HeaderView {
+  fileprivate var isActive: Bool {
+    permissionStatus == .granted && isOsaurusRunning
+  }
+
+  fileprivate func checkOsaurus() {
+    Task {
+      let running = await Osaurus.checkHealth()
+      await MainActor.run {
+        let wasActive = self.previousActiveState
+        self.isOsaurusRunning = running
+        let nowActive = self.isActive
+
+        // Detect status changes
+        if wasActive != nowActive {
+          handleActiveStatusChange(nowActive: nowActive)
+        }
+
+        self.previousActiveState = nowActive
+      }
+    }
+  }
+
+  fileprivate func handleActiveStatusChange(nowActive: Bool) {
+    if nowActive {
+      // System became active: enable hotkeys and refresh models
+      #if DEBUG
+        print("[Tweaks] System became ACTIVE - enabling hotkeys and refreshing models")
+      #endif
+
+      // Re-enable hotkeys
+      if let keyCode = UserDefaults.standard.object(forKey: "HotkeyKeyCode") as? Int,
+        let modifiers = UserDefaults.standard.object(forKey: "HotkeyModifiers") as? Int
+      {
+        AppDelegate.shared?.registerGlobalHotkey(
+          keyCode: UInt32(keyCode),
+          modifiers: UInt32(modifiers)
+        )
+      }
+
+      // Refresh models
+      Task {
+        await SettingsManager.shared.fetchAvailableModels()
+      }
+    } else {
+      // System became inactive: disable hotkeys
+      #if DEBUG
+        print("[Tweaks] System became INACTIVE - disabling hotkeys")
+      #endif
+
+      AppDelegate.shared?.suspendGlobalHotkey()
+    }
+  }
+
+  fileprivate func startPeriodicCheck() {
+    // Initialize previous state
+    previousActiveState = isActive
+
+    // Check every 2 seconds while the panel is visible
+    checkTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { _ in
+      checkOsaurus()
+    }
+  }
+
+  fileprivate func stopPeriodicCheck() {
+    checkTimer?.invalidate()
+    checkTimer = nil
   }
 }
 

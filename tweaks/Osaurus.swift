@@ -2,10 +2,31 @@
 //  Osaurus.swift
 //  tweaks
 //
-//  Minimal Osaurus SDK: discovery + chat completions
+//  Osaurus SDK
 //
 
 import Foundation
+
+// MARK: - Discovery Types
+
+struct OsaurusSharedConfiguration: Decodable {
+  let instanceId: String
+  let updatedAt: String
+  let health: String
+  let port: Int?
+  let address: String?
+  let url: String?
+  let exposeToNetwork: Bool?
+}
+
+struct OsaurusInstance {
+  let instanceId: String
+  let updatedAt: Date
+  let address: String
+  let port: Int
+  let url: URL
+  let exposeToNetwork: Bool
+}
 
 // MARK: - SDK Models
 
@@ -65,12 +86,38 @@ struct OsaurusChatCompletionChunk: Codable {
   let choices: [Choice]
 }
 
+// MARK: - Models API Types
+
+struct OsaurusModel: Codable, Identifiable, Hashable {
+  let id: String
+  let object: String?
+  let created: Int?
+  let owned_by: String?
+
+  var displayName: String {
+    id.replacingOccurrences(of: "llama-", with: "Llama ")
+      .replacingOccurrences(of: "-", with: " ")
+      .replacingOccurrences(of: "instruct", with: "Instruct")
+      .replacingOccurrences(of: "4bit", with: "(4-bit)")
+      .replacingOccurrences(of: "8bit", with: "(8-bit)")
+      .replacingOccurrences(of: "fp16", with: "(FP16)")
+  }
+}
+
+struct OsaurusModelsResponse: Codable {
+  let object: String?
+  let data: [OsaurusModel]
+}
+
 // MARK: - Client
 
 final class Osaurus {
   let baseURL: URL
   let session: URLSession
   lazy var chat: Chat = Chat(client: self)
+
+  // Canonical base path used by Osaurus discovery
+  private static let bundleIdentifier = "com.dinoki.osaurus"
 
   init(baseURL: URL? = nil, session: URLSession = .shared) throws {
     if let provided = baseURL {
@@ -91,6 +138,144 @@ final class Osaurus {
     self.session = session
   }
 
+  // Factory that prefers env override, then discovery. Throws when not found.
+  static func make(session: URLSession = .shared) throws -> Osaurus {
+    if let override = ProcessInfo.processInfo.environment["OSAURUS_BASE_URL"],
+      let url = URL(string: override)
+    {
+      return try Osaurus(baseURL: url, session: session)
+    }
+    do {
+      let instance = try discoverLatestRunningInstance()
+      return try Osaurus(baseURL: instance.url, session: session)
+    } catch {
+      throw OsaurusError.discoveryFailed
+    }
+  }
+
+  // MARK: - Discovery
+
+  /// Discovers the latest running Osaurus instance by reading shared configuration files
+  static func discoverLatestRunningInstance() throws -> OsaurusInstance {
+    let fm = FileManager.default
+    let supportDir = fm.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
+    let base =
+      supportDir
+      .appendingPathComponent(bundleIdentifier, isDirectory: true)
+      .appendingPathComponent("SharedConfiguration", isDirectory: true)
+
+    guard
+      let instanceDirs = try? fm.contentsOfDirectory(
+        at: base, includingPropertiesForKeys: [.contentModificationDateKey, .isDirectoryKey],
+        options: [.skipsHiddenFiles]), !instanceDirs.isEmpty
+    else {
+      throw OsaurusError.discoveryFailed
+    }
+
+    var candidates: [OsaurusInstance] = []
+
+    for dir in instanceDirs {
+      var isDirectory: ObjCBool = false
+      guard fm.fileExists(atPath: dir.path, isDirectory: &isDirectory), isDirectory.boolValue else {
+        continue
+      }
+      let fileURL = dir.appendingPathComponent("configuration.json")
+      guard fm.fileExists(atPath: fileURL.path) else { continue }
+
+      do {
+        let data = try Data(contentsOf: fileURL)
+        let cfg = try JSONDecoder().decode(OsaurusSharedConfiguration.self, from: data)
+        guard cfg.health == "running", let address = cfg.address, let port = cfg.port else {
+          continue
+        }
+
+        let updatedAt: Date =
+          ISO8601DateFormatter().date(from: cfg.updatedAt)
+          ?? (try? dir.resourceValues(forKeys: [.contentModificationDateKey])
+            .contentModificationDate) ?? Date.distantPast
+
+        let url: URL
+        if let cfgURL = cfg.url, let parsed = URL(string: cfgURL) {
+          url = parsed
+        } else {
+          var comps = URLComponents()
+          comps.scheme = "http"
+          comps.host = address
+          comps.port = port
+          url = comps.url!
+        }
+
+        let expose = cfg.exposeToNetwork ?? false
+
+        candidates.append(
+          OsaurusInstance(
+            instanceId: cfg.instanceId,
+            updatedAt: updatedAt,
+            address: address,
+            port: port,
+            url: url,
+            exposeToNetwork: expose
+          ))
+      } catch {
+        // Ignore malformed entries and continue
+        continue
+      }
+    }
+
+    guard let best = candidates.max(by: { $0.updatedAt < $1.updatedAt }) else {
+      throw OsaurusError.discoveryFailed
+    }
+    return best
+  }
+
+  /// Quick check to see if any Osaurus instance is running
+  static func isRunning() -> Bool {
+    do {
+      _ = try discoverLatestRunningInstance()
+      return true
+    } catch {
+      return false
+    }
+  }
+
+  /// Async health check that verifies connectivity to the discovered instance
+  static func checkHealth() async -> Bool {
+    do {
+      let instance = try discoverLatestRunningInstance()
+      let client = try Osaurus(baseURL: instance.url)
+
+      // Try to list models as a lightweight health check
+      let request = client.buildRequest(path: "v1/models")
+      let (_, resp) = try await client.session.data(for: request)
+      guard let http = resp as? HTTPURLResponse else { return false }
+      return (200...299).contains(http.statusCode)
+    } catch {
+      return false
+    }
+  }
+
+  // Build URL for API path like "v1/chat/completions"
+  fileprivate func url(path: String) -> URL {
+    var components = URLComponents(url: baseURL, resolvingAgainstBaseURL: false)!
+    let normalized = path.hasPrefix("/") ? path : "/" + path
+    components.path = (components.path.isEmpty ? "" : components.path) + normalized
+    return components.url!
+  }
+
+  // Build a request with shared headers
+  fileprivate func buildRequest(path: String, method: String = "GET", accept: String? = nil)
+    -> URLRequest
+  {
+    var request = URLRequest(url: url(path: path))
+    request.httpMethod = method
+    request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+    if let accept { request.setValue(accept, forHTTPHeaderField: "Accept") }
+    if let key = ProcessInfo.processInfo.environment["OSAURUS_API_KEY"], !key.isEmpty {
+      request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
+    }
+    return request
+  }
+
   final class Chat {
     let client: Osaurus
     let completions: Completions
@@ -106,12 +291,7 @@ final class Osaurus {
       func create(model: String, messages: [OsaurusChatMessage], temperature: Double? = nil)
         async throws -> OsaurusChatCompletionResponse
       {
-        var request = URLRequest(url: client.baseURL.appendingPathComponent("/v1/chat/completions"))
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        if let key = ProcessInfo.processInfo.environment["OSAURUS_API_KEY"], !key.isEmpty {
-          request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-        }
+        var request = client.buildRequest(path: "v1/chat/completions", method: "POST")
         let payload = OsaurusChatCompletionRequest(
           model: model, messages: messages, temperature: temperature)
         request.httpBody = try JSONEncoder().encode(payload)
@@ -131,15 +311,8 @@ final class Osaurus {
         messages: [OsaurusChatMessage],
         temperature: Double? = nil
       ) -> AsyncThrowingStream<String, Error> {
-        let url = client.baseURL.appendingPathComponent("/v1/chat/completions")
-
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        request.setValue("text/event-stream", forHTTPHeaderField: "Accept")
-        if let key = ProcessInfo.processInfo.environment["OSAURUS_API_KEY"], !key.isEmpty {
-          request.setValue("Bearer \(key)", forHTTPHeaderField: "Authorization")
-        }
+        var request = client.buildRequest(
+          path: "v1/chat/completions", method: "POST", accept: "text/event-stream")
 
         // Encode with stream=true
         let payload = OsaurusChatCompletionStreamRequest(
@@ -236,5 +409,17 @@ extension Osaurus {
     ]
     return chat.completions.createStream(
       model: model, messages: messages, temperature: temperature)
+  }
+
+  // List available models from the server
+  func listModels() async throws -> [OsaurusModel] {
+    let request = buildRequest(path: "v1/models")
+    let (data, resp) = try await session.data(for: request)
+    guard let http = resp as? HTTPURLResponse else { throw OsaurusError.invalidResponse }
+    guard (200...299).contains(http.statusCode) else {
+      throw OsaurusError.httpError(http.statusCode)
+    }
+    let decoded = try JSONDecoder().decode(OsaurusModelsResponse.self, from: data)
+    return decoded.data
   }
 }

@@ -252,4 +252,3 @@ extension View {
     FuturisticCard(content: AnyView(self))
   }
 }
-
