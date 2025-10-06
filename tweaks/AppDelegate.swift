@@ -10,6 +10,7 @@ import Carbon
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
+  static var shared: AppDelegate?
   var statusItem: NSStatusItem?
   var popover = NSPopover()
   var hotKeyRef: EventHotKeyRef?
@@ -18,6 +19,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   let hotkeyModifiersDefaultsKey = "HotkeyModifiers"
 
   func applicationDidFinishLaunching(_ notification: Notification) {
+    // Expose shared reference for convenient access from SwiftUI views
+    AppDelegate.shared = self
     // Set activation policy to accessory (no dock icon)
     NSApp.setActivationPolicy(.accessory)
 
@@ -29,8 +32,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       button.action = #selector(togglePopover)
     }
 
-    // Configure the popover
-    popover.contentSize = NSSize(width: 300, height: 500)
+    // Configure the popover (match SwiftUI view frame to avoid layout loops)
+    popover.contentSize = NSSize(width: 380, height: 500)
     popover.behavior = .transient
     popover.contentViewController = NSHostingController(rootView: ContentView())
 
@@ -81,16 +84,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let activeApp = NSWorkspace.shared.frontmostApplication?.localizedName ?? "unknown"
             print("[Tweaks] Hotkey pressed. Frontmost app=\(activeApp)")
           }
-          // Resolve delegate from userData if available; fallback to NSApp.delegate
-          let appDelegate: AppDelegate? = {
-            if let userData = userData {
-              return Unmanaged<AppDelegate>.fromOpaque(userData).takeUnretainedValue()
-            }
-            return NSApp.delegate as? AppDelegate
-          }()
-
-          // Invoke tweak on main thread
-          if let appDelegate {
+          // Invoke tweak on main thread using shared delegate
+          if let appDelegate = AppDelegate.shared {
             if DebugHelpers.isDebugBuild { print("[Tweaks] Queuing pasteTweakedText on main") }
             DispatchQueue.main.async {
               if DebugHelpers.isDebugBuild {
@@ -112,7 +107,8 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       }, 1, &eventType, Unmanaged.passUnretained(self).toOpaque(), &hotKeyEventHandler)
   }
 
-  func registerGlobalHotkey(keyCode: UInt32, modifiers: UInt32) {
+  @discardableResult
+  func registerGlobalHotkey(keyCode: UInt32, modifiers: UInt32) -> Bool {
     // Unregister previous hotkey if any
     if let hotKeyRef {
       UnregisterEventHotKey(hotKeyRef)
@@ -125,14 +121,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
     if status != noErr {
       print("RegisterEventHotKey failed: \(status)")
+      return false
     }
+    return true
   }
 
-  func updateGlobalHotkey(keyCode: UInt32, modifiers: UInt32) {
+  @discardableResult
+  func updateGlobalHotkey(keyCode: UInt32, modifiers: UInt32) -> Bool {
     let defaults = UserDefaults.standard
     defaults.set(Int(keyCode), forKey: hotkeyKeyCodeDefaultsKey)
     defaults.set(Int(modifiers), forKey: hotkeyModifiersDefaultsKey)
-    registerGlobalHotkey(keyCode: keyCode, modifiers: modifiers)
+    return registerGlobalHotkey(keyCode: keyCode, modifiers: modifiers)
   }
 
   func pasteTweakedText() {
@@ -170,10 +169,13 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       Task {
         do {
           let client = try Osaurus()
-          let settings = await SettingsManager.shared
-          let model = await settings.selectedModelId
-          let systemPrompt = await settings.activePrompt?.content ?? Osaurus.Defaults.systemPrompt
-          let temperature = await settings.temperature
+          let (model, systemPrompt, temperature): (String, String, Double) = await MainActor.run {
+            let settings = SettingsManager.shared
+            let model = settings.selectedModelId
+            let systemPrompt = settings.activePrompt?.content ?? Osaurus.Defaults.systemPrompt
+            let temperature = settings.temperature
+            return (model, systemPrompt, temperature)
+          }
 
           // Stream deltas and paste incrementally
           let stream = client.tweakStream(
@@ -303,6 +305,14 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
     if let hotKeyEventHandler {
       RemoveEventHandler(hotKeyEventHandler)
+    }
+  }
+
+  // Temporarily unregister the current hotkey (used while recording a new shortcut)
+  func suspendGlobalHotkey() {
+    if let hotKeyRef {
+      UnregisterEventHotKey(hotKeyRef)
+      self.hotKeyRef = nil
     }
   }
 }

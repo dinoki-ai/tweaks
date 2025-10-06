@@ -205,9 +205,9 @@ extension Osaurus {
 
   func tweak(
     text: String,
-    model: String = Defaults.model,
-    systemPrompt: String = Defaults.systemPrompt,
-    temperature: Double = Defaults.temperature
+    model: String,
+    systemPrompt: String,
+    temperature: Double
   ) async throws -> String {
     let messages = [
       OsaurusChatMessage(role: "system", content: systemPrompt),
@@ -226,9 +226,9 @@ extension Osaurus {
   // Streaming variant that yields only content deltas
   func tweakStream(
     text: String,
-    model: String = Defaults.model,
-    systemPrompt: String = Defaults.systemPrompt,
-    temperature: Double = Defaults.temperature
+    model: String,
+    systemPrompt: String,
+    temperature: Double
   ) -> AsyncThrowingStream<String, Error> {
     let messages = [
       OsaurusChatMessage(role: "system", content: systemPrompt),

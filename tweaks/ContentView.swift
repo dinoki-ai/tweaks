@@ -19,6 +19,7 @@ struct ContentView: View {
   @State private var recordedKeyCode: UInt32 = UInt32(kVK_ANSI_T)
   @State private var recordedModifiers: UInt32 = UInt32(controlKey)
   @State private var showingPromptEditor = false
+  @State private var hotkeyRegistrationStatus: Bool? = nil
 
   private func loadSavedShortcut() {
     let defaults = UserDefaults.standard
@@ -58,7 +59,8 @@ struct ContentView: View {
               SystemSettingsView(
                 recordingShortcut: $recordingShortcut,
                 recordedKeyCode: $recordedKeyCode,
-                recordedModifiers: $recordedModifiers
+                recordedModifiers: $recordedModifiers,
+                registrationResult: $hotkeyRegistrationStatus
               )
             default:
               EmptyView()
@@ -80,9 +82,26 @@ struct ContentView: View {
       RecordingView(isRecording: $recordingShortcut) { keyCode, modifiers in
         recordedKeyCode = keyCode
         recordedModifiers = modifiers
-        (NSApp.delegate as? AppDelegate)?.updateGlobalHotkey(keyCode: keyCode, modifiers: modifiers)
+        let success =
+          AppDelegate.shared?.updateGlobalHotkey(
+            keyCode: keyCode, modifiers: modifiers) ?? false
+        hotkeyRegistrationStatus = success
+        // Auto-clear the status after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+          hotkeyRegistrationStatus = nil
+        }
         feedbackManager.hotkeyTriggered()
-      })
+      }
+    )
+    .onChange(of: recordingShortcut) { oldValue, isRecording in
+      if isRecording {
+        AppDelegate.shared?.suspendGlobalHotkey()
+      } else {
+        // Re-register current shortcut when recording stops (in case user cancelled)
+        AppDelegate.shared?.registerGlobalHotkey(
+          keyCode: recordedKeyCode, modifiers: recordedModifiers)
+      }
+    }
   }
 }
 
@@ -208,6 +227,7 @@ struct MainView: View {
                 .stroke(FuturisticTheme.accent.opacity(0.3), lineWidth: 1)
             )
             .neonGlow(color: FuturisticTheme.accent, radius: 8)
+            .lineLimit(1)
         }
 
         // Current Settings
@@ -416,6 +436,7 @@ struct SystemSettingsView: View {
   @Binding var recordingShortcut: Bool
   @Binding var recordedKeyCode: UInt32
   @Binding var recordedModifiers: UInt32
+  @Binding var registrationResult: Bool?
 
   var body: some View {
     VStack(spacing: 20) {
@@ -439,11 +460,16 @@ struct SystemSettingsView: View {
             .padding(.vertical, 8)
             .background(FuturisticTheme.accent.opacity(0.1))
             .cornerRadius(FuturisticTheme.smallCornerRadius)
+            .lineLimit(1)
 
           FuturisticButton(
             title: recordingShortcut ? "Recording..." : "Change",
             icon: "keyboard",
-            action: { recordingShortcut = true },
+            action: {
+              // Temporarily suspend current hotkey so it doesn't fire while capturing
+              AppDelegate.shared?.suspendGlobalHotkey()
+              recordingShortcut = true
+            },
             style: recordingShortcut ? .primary : .secondary
           )
         }
@@ -458,6 +484,15 @@ struct SystemSettingsView: View {
               .foregroundColor(FuturisticTheme.accent)
           }
           .transition(.opacity.combined(with: .move(edge: .top)))
+        } else if let result = registrationResult {
+          HStack(spacing: 8) {
+            Image(systemName: result ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+              .foregroundColor(result ? FuturisticTheme.success : FuturisticTheme.warning)
+            Text(result ? "Hotkey updated" : "Failed to register hotkey")
+              .font(.system(size: 11))
+              .foregroundColor(FuturisticTheme.textSecondary)
+          }
+          .transition(.opacity)
         }
       }
       .padding()
@@ -478,8 +513,6 @@ struct SystemSettingsView: View {
       }
       .padding()
       .glassEffect()
-
-      Spacer()
 
       // Quit Button
       FuturisticButton(
@@ -644,17 +677,35 @@ private func shortcutDisplayString(keyCode: UInt32, modifiers: UInt32) -> String
 }
 
 private func keyCodeToString(_ keyCode: UInt32) -> String {
+  // Explicit mapping for common macOS virtual key codes
+  let letters: [UInt32: String] = [
+    UInt32(kVK_ANSI_A): "A", UInt32(kVK_ANSI_B): "B", UInt32(kVK_ANSI_C): "C",
+    UInt32(kVK_ANSI_D): "D", UInt32(kVK_ANSI_E): "E", UInt32(kVK_ANSI_F): "F",
+    UInt32(kVK_ANSI_G): "G", UInt32(kVK_ANSI_H): "H", UInt32(kVK_ANSI_I): "I",
+    UInt32(kVK_ANSI_J): "J", UInt32(kVK_ANSI_K): "K", UInt32(kVK_ANSI_L): "L",
+    UInt32(kVK_ANSI_M): "M", UInt32(kVK_ANSI_N): "N", UInt32(kVK_ANSI_O): "O",
+    UInt32(kVK_ANSI_P): "P", UInt32(kVK_ANSI_Q): "Q", UInt32(kVK_ANSI_R): "R",
+    UInt32(kVK_ANSI_S): "S", UInt32(kVK_ANSI_T): "T", UInt32(kVK_ANSI_U): "U",
+    UInt32(kVK_ANSI_V): "V", UInt32(kVK_ANSI_W): "W", UInt32(kVK_ANSI_X): "X",
+    UInt32(kVK_ANSI_Y): "Y", UInt32(kVK_ANSI_Z): "Z",
+  ]
+
+  let digits: [UInt32: String] = [
+    UInt32(kVK_ANSI_0): "0", UInt32(kVK_ANSI_1): "1", UInt32(kVK_ANSI_2): "2",
+    UInt32(kVK_ANSI_3): "3", UInt32(kVK_ANSI_4): "4", UInt32(kVK_ANSI_5): "5",
+    UInt32(kVK_ANSI_6): "6", UInt32(kVK_ANSI_7): "7", UInt32(kVK_ANSI_8): "8",
+    UInt32(kVK_ANSI_9): "9",
+  ]
+
+  if let letter = letters[keyCode] { return letter }
+  if let digit = digits[keyCode] { return digit }
+
   switch keyCode {
-  case UInt32(kVK_ANSI_A)...UInt32(kVK_ANSI_Z):
-    let index = Int(keyCode - UInt32(kVK_ANSI_A))
-    let scalars = Array("ABCDEFGHIJKLMNOPQRSTUVWXYZ".unicodeScalars)
-    if index >= 0 && index < scalars.count {
-      return String(Character(scalars[index]))
-    }
-    return "Key\(keyCode)"
   case UInt32(kVK_Space): return "Space"
   case UInt32(kVK_Return): return "Return"
   case UInt32(kVK_Escape): return "Esc"
+  case UInt32(kVK_Tab): return "Tab"
+  case UInt32(kVK_Delete): return "Delete"
   default:
     return "Key\(keyCode)"
   }
