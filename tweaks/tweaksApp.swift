@@ -9,11 +9,11 @@ import SwiftUI
 
 @main
 struct tweaksApp: App {
-    @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    
-    var body: some Scene {
-        Settings {
-            EmptyView()
-        }
+  @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
+
+  var body: some Scene {
+    Settings {
+      EmptyView()
     }
+  }
 }
