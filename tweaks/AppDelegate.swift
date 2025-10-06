@@ -166,7 +166,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       // Save current clipboard content
       let originalContent = text
 
-      // Create tweak using Osaurus on a background task
+      // Create tweak using Osaurus on a background task (streaming)
       Task {
         do {
           let client = try Osaurus()
@@ -175,43 +175,85 @@ class AppDelegate: NSObject, NSApplicationDelegate {
           let systemPrompt = await settings.activePrompt?.content ?? Osaurus.Defaults.systemPrompt
           let temperature = await settings.temperature
 
-          let tweakedText = try await client.tweak(
+          // Stream deltas and paste incrementally
+          let stream = client.tweakStream(
             text: originalContent,
             model: model,
             systemPrompt: systemPrompt,
             temperature: temperature
           )
 
-          // Prepare paste on main thread
-          DispatchQueue.main.async {
-            // Temporarily set clipboard to tweaked text
-            pasteboard.clearContents()
-            let setOk = pasteboard.setString(tweakedText, forType: .string)
-            if DebugHelpers.isDebugBuild {
-              print("[Tweaks] Temporary pasteboard set ok=\(setOk). Will paste via Cmd+V.")
-            }
+          var deltaBuffer = ""
+          var receivedAny = false
 
-            // Give the system a brief moment to observe the new pasteboard contents
-            let prePasteDelay: TimeInterval = 0.02
-            let restoreDelay: TimeInterval = 0.50
-
-            DispatchQueue.main.asyncAfter(deadline: .now() + prePasteDelay) {
-              // Post only once via session tap (avoid duplicate pastes)
-              self.postCmdV(tap: .cgSessionEventTap, label: "session tap")
-            }
-
-            // Restore original clipboard content after the paste has likely completed
-            DispatchQueue.main.asyncAfter(deadline: .now() + prePasteDelay + restoreDelay) {
+          func pasteDelta(_ delta: String) {
+            guard !delta.isEmpty else { return }
+            DispatchQueue.main.async {
               pasteboard.clearContents()
-              pasteboard.setString(originalContent, forType: .string)
+              let ok = pasteboard.setString(delta, forType: .string)
               if DebugHelpers.isDebugBuild {
-                print("[Tweaks] Original clipboard restored. Length=\(originalContent.count)")
+                print("[Tweaks] Pasting delta chunk (len=\(delta.count)) ok=\(ok)")
               }
+              let prePasteDelay: TimeInterval = 0.02
+              DispatchQueue.main.asyncAfter(deadline: .now() + prePasteDelay) {
+                self.postCmdV(tap: .cgSessionEventTap, label: "session tap")
+              }
+            }
+          }
+
+          for try await chunk in stream {
+            if chunk.isEmpty { continue }
+            receivedAny = true
+            deltaBuffer.append(chunk)
+
+            // Simple coalescing: paste when buffer is reasonably sized or contains newline
+            if deltaBuffer.count >= 24 || deltaBuffer.contains("\n") {
+              pasteDelta(deltaBuffer)
+              deltaBuffer.removeAll(keepingCapacity: true)
+            }
+          }
+
+          // Paste any remaining buffered text
+          if !deltaBuffer.isEmpty {
+            pasteDelta(deltaBuffer)
+            deltaBuffer.removeAll()
+          }
+
+          // If nothing streamed (edge-case), fall back to one-shot call
+          if !receivedAny {
+            if DebugHelpers.isDebugBuild {
+              print("[Tweaks] Stream yielded no chunks. Falling back to non-stream call.")
+            }
+            let tweakedText = try await client.tweak(
+              text: originalContent,
+              model: model,
+              systemPrompt: systemPrompt,
+              temperature: temperature
+            )
+            DispatchQueue.main.async {
+              pasteboard.clearContents()
+              let setOk = pasteboard.setString(tweakedText, forType: .string)
+              if DebugHelpers.isDebugBuild {
+                print("[Tweaks] Fallback set clipboard ok=\(setOk)")
+              }
+              let prePasteDelay: TimeInterval = 0.02
+              DispatchQueue.main.asyncAfter(deadline: .now() + prePasteDelay) {
+                self.postCmdV(tap: .cgSessionEventTap, label: "session tap")
+              }
+            }
+          }
+
+          // Restore original clipboard after a short delay from the last paste
+          DispatchQueue.main.asyncAfter(deadline: .now() + 0.70) {
+            pasteboard.clearContents()
+            pasteboard.setString(originalContent, forType: .string)
+            if DebugHelpers.isDebugBuild {
+              print("[Tweaks] Original clipboard restored. Length=\(originalContent.count)")
             }
           }
         } catch {
           if DebugHelpers.isDebugBuild {
-            print("[Tweaks] Osaurus tweak failed: \(error)")
+            print("[Tweaks] Osaurus tweak (stream) failed: \(error)")
           }
           // Fallback: paste original clipboard content unchanged
           DispatchQueue.main.async {
