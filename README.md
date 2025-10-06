@@ -1,5 +1,11 @@
 # Tweaks 🧠📋
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Swift](https://img.shields.io/badge/Swift-5.9-orange.svg)](https://swift.org)
+[![Platform](https://img.shields.io/badge/Platform-macOS%2014.0%2B-lightgrey.svg)](https://www.apple.com/macos/)
+[![Xcode](https://img.shields.io/badge/Xcode-16.0%2B-blue.svg)](https://developer.apple.com/xcode/)
+[![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-Required-red.svg)](https://support.apple.com/en-us/HT211814)
+
 A simple macOS menu bar app that improves your clipboard text with AI and generates a new paste.
 
 ## Features
@@ -128,7 +134,7 @@ tweaks/
 
 ## License
 
-This project is provided as-is for educational purposes.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ---
 
