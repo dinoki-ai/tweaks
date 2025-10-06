@@ -87,10 +87,10 @@ while true; do
             ;;
         5)
             echo "Opening debug setup guide..."
-            if [ -f "/Users/tpae/dev/tweaks/DEBUG_SETUP.md" ]; then
-                open "/Users/tpae/dev/tweaks/DEBUG_SETUP.md"
+            if [ -f "/Users/tpae/dev/tweaks/README.md" ]; then
+                open "/Users/tpae/dev/tweaks/README.md"
             else
-                echo -e "${RED}❌ DEBUG_SETUP.md not found${NC}"
+                echo -e "${RED}❌ README.md not found${NC}"
             fi
             ;;
         6)
