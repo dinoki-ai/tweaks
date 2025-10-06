@@ -106,10 +106,10 @@ struct MainTabView: View {
         VStack(alignment: .leading, spacing: 16) {
             // Quick intro
             VStack(alignment: .leading, spacing: 8) {
-                Label("Paste text with emoji " + "😊", systemImage: "sparkles")
+                Label("Paste tweaked text", systemImage: "sparkles")
                     .font(.headline)
                 
-                Text("Press **\(shortcutDisplayString(keyCode: recordedKeyCode, modifiers: recordedModifiers))** to paste your clipboard text with an emoji appended.")
+                Text("Press **\(shortcutDisplayString(keyCode: recordedKeyCode, modifiers: recordedModifiers))** to paste your clipboard text improved by Osaurus.")
                     .font(.subheadline)
                     .foregroundColor(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
@@ -200,7 +200,7 @@ struct SettingsTabView: View {
                     HStack {
                         Image(systemName: "face.smiling")
                             .foregroundColor(.secondary)
-                        Text("Adds emoji to pasted text")
+                        Text("Tweaks clipboard text using Osaurus")
                             .font(.subheadline)
                     }
                 }

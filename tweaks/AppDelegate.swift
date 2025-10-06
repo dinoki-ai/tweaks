@@ -81,15 +81,15 @@ class AppDelegate: NSObject, NSApplicationDelegate {
                     return NSApp.delegate as? AppDelegate
                 }()
                 
-                // Invoke paste on main thread
+                // Invoke tweak on main thread
                 if let appDelegate {
-                    if DebugHelpers.isDebugBuild { print("[Tweaks] Queuing pasteTextWithEmoji on main") }
+                    if DebugHelpers.isDebugBuild { print("[Tweaks] Queuing pasteTweakedText on main") }
                     DispatchQueue.main.async {
-                        if DebugHelpers.isDebugBuild { print("[Tweaks] Dispatching pasteTextWithEmoji on main thread") }
-                        appDelegate.pasteTextWithEmoji()
+                        if DebugHelpers.isDebugBuild { print("[Tweaks] Dispatching pasteTweakedText on main thread") }
+                        appDelegate.pasteTweakedText()
                     }
                 } else {
-                    if DebugHelpers.isDebugBuild { print("[Tweaks] Could not resolve AppDelegate for paste invocation") }
+                    if DebugHelpers.isDebugBuild { print("[Tweaks] Could not resolve AppDelegate for tweak invocation") }
                 }
                 // Trigger feedback
                 DispatchQueue.main.async {
@@ -122,7 +122,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         registerGlobalHotkey(keyCode: keyCode, modifiers: modifiers)
     }
     
-    func pasteTextWithEmoji() {
+    func pasteTweakedText() {
         if DebugHelpers.isDebugBuild {
             let trusted = AXIsProcessTrusted()
             #if canImport(Carbon)
@@ -131,12 +131,12 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             let secureInput = false
             #endif
             let activeApp = NSWorkspace.shared.frontmostApplication?.localizedName ?? "unknown"
-            print("[Tweaks] Enter pasteTextWithEmoji trusted=\(trusted) secureInput=\(secureInput) app=\(activeApp)")
+            print("[Tweaks] Enter pasteTweakedText trusted=\(trusted) secureInput=\(secureInput) app=\(activeApp)")
         }
         // Ensure we have accessibility permission before attempting to post events
         guard AXIsProcessTrusted() else {
             if DebugHelpers.isDebugBuild {
-                print("[Tweaks] Accessibility not trusted. Aborting paste.")
+                print("[Tweaks] Accessibility not trusted. Aborting tweak.")
             }
             return
         }
@@ -151,62 +151,54 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             // Save current clipboard content
             let originalContent = text
             
-            // Add emoji to the text
-            let textWithEmoji = text + " 😊"
-            
-            // Temporarily set clipboard to text with emoji
-            pasteboard.clearContents()
-            let setOk = pasteboard.setString(textWithEmoji, forType: .string)
-            if DebugHelpers.isDebugBuild {
-                print("[Tweaks] Temporary pasteboard set ok=\(setOk). Will paste via Cmd+V.")
-            }
-            
-            // Give the system a brief moment to observe the new pasteboard contents
-            let prePasteDelay: TimeInterval = 0.02
-            let restoreDelay: TimeInterval = 0.50
-            
-            DispatchQueue.main.asyncAfter(deadline: .now() + prePasteDelay) {
-                func postCmdV(tap: CGEventTapLocation, label: String) {
-                    let source = CGEventSource(stateID: .combinedSessionState)
-                    // cmd down
-                    let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: true)
-                    cmdDown?.flags = .maskCommand
-                    // v down
-                    let vDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
-                    vDown?.flags = .maskCommand
-                    // v up
-                    let vUp = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
-                    vUp?.flags = .maskCommand
-                    // cmd up
-                    let cmdUp = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: false)
-                    cmdUp?.flags = .maskCommand
-                    cmdDown?.post(tap: tap)
-                    // small inter-event spacing
-                    usleep(1500)
-                    vDown?.post(tap: tap)
-                    usleep(1500)
-                    vUp?.post(tap: tap)
-                    usleep(1500)
-                    cmdUp?.post(tap: tap)
+            // Create tweak using Osaurus on a background task
+            Task {
+                do {
+                    let client = try Osaurus()
+                    let tweakedText = try await client.tweak(text: originalContent)
+                    
+                    // Prepare paste on main thread
+                    DispatchQueue.main.async {
+                        // Temporarily set clipboard to tweaked text
+                        pasteboard.clearContents()
+                        let setOk = pasteboard.setString(tweakedText, forType: .string)
+                        if DebugHelpers.isDebugBuild {
+                            print("[Tweaks] Temporary pasteboard set ok=\(setOk). Will paste via Cmd+V.")
+                        }
+                        
+                        // Give the system a brief moment to observe the new pasteboard contents
+                        let prePasteDelay: TimeInterval = 0.02
+                        let restoreDelay: TimeInterval = 0.50
+                        
+                        DispatchQueue.main.asyncAfter(deadline: .now() + prePasteDelay) {
+                            // Post only once via session tap (avoid duplicate pastes)
+                            self.postCmdV(tap: .cgSessionEventTap, label: "session tap")
+                        }
+                        
+                        // Restore original clipboard content after the paste has likely completed
+                        DispatchQueue.main.asyncAfter(deadline: .now() + prePasteDelay + restoreDelay) {
+                            pasteboard.clearContents()
+                            pasteboard.setString(originalContent, forType: .string)
+                            if DebugHelpers.isDebugBuild {
+                                print("[Tweaks] Original clipboard restored. Length=\(originalContent.count)")
+                            }
+                        }
+                    }
+                } catch {
                     if DebugHelpers.isDebugBuild {
-                        let activeApp = NSWorkspace.shared.frontmostApplication?.localizedName ?? "unknown"
-                        print("[Tweaks] Posted Cmd+V sequence via \(label) for app=\(activeApp)")
+                        print("[Tweaks] Osaurus tweak failed: \(error)")
+                    }
+                    // Fallback: paste original clipboard content unchanged
+                    DispatchQueue.main.async {
+                        pasteboard.clearContents()
+                        _ = pasteboard.setString(originalContent, forType: .string)
+                        let prePasteDelay: TimeInterval = 0.02
+                        DispatchQueue.main.asyncAfter(deadline: .now() + prePasteDelay) {
+                            self.postCmdV(tap: .cgSessionEventTap, label: "session tap")
+                        }
                     }
                 }
-                // Post only once via session tap (avoid duplicate pastes)
-                postCmdV(tap: .cgSessionEventTap, label: "session tap")
             }
-            
-            // Restore original clipboard content after the paste has likely completed
-            DispatchQueue.main.asyncAfter(deadline: .now() + prePasteDelay + restoreDelay) {
-                pasteboard.clearContents()
-                pasteboard.setString(originalContent, forType: .string)
-                if DebugHelpers.isDebugBuild {
-                    print("[Tweaks] Original clipboard restored. Length=\(originalContent.count)")
-                }
-            }
-            
-            // No AppleScript fallback by default to avoid accidental duplicates
         } else {
             if DebugHelpers.isDebugBuild {
                 print("[Tweaks] Clipboard empty or not string. No action.")
@@ -214,28 +206,26 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         }
     }
 
-    private func tryAppleScriptPasteFallback() {
-        guard DebugHelpers.isDebugBuild else { return }
-        let frontApp = NSWorkspace.shared.frontmostApplication?.localizedName ?? ""
-        let scriptSource = """
-        tell application "System Events"
-            try
-                keystroke "v" using {command down}
-            on error errMsg number errNum
-                return "ERROR: " & errNum & " - " & errMsg
-            end try
-        end tell
-        """
-        if let script = NSAppleScript(source: scriptSource) {
-            var errorInfo: NSDictionary?
-            let result = script.executeAndReturnError(&errorInfo)
-            if let errorInfo {
-                print("[Tweaks] AppleScript paste fallback error for app=\(frontApp): \(errorInfo)")
-            } else {
-                print("[Tweaks] AppleScript paste fallback attempted for app=\(frontApp). Result=\(result.stringValue ?? "ok")")
-            }
-        } else {
-            print("[Tweaks] AppleScript could not be created for fallback paste.")
+    private func postCmdV(tap: CGEventTapLocation, label: String) {
+        let source = CGEventSource(stateID: .combinedSessionState)
+        let cmdDown = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: true)
+        cmdDown?.flags = .maskCommand
+        let vDown = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: true)
+        vDown?.flags = .maskCommand
+        let vUp = CGEvent(keyboardEventSource: source, virtualKey: 0x09, keyDown: false)
+        vUp?.flags = .maskCommand
+        let cmdUp = CGEvent(keyboardEventSource: source, virtualKey: 0x37, keyDown: false)
+        cmdUp?.flags = .maskCommand
+        cmdDown?.post(tap: tap)
+        usleep(1500)
+        vDown?.post(tap: tap)
+        usleep(1500)
+        vUp?.post(tap: tap)
+        usleep(1500)
+        cmdUp?.post(tap: tap)
+        if DebugHelpers.isDebugBuild {
+            let activeApp = NSWorkspace.shared.frontmostApplication?.localizedName ?? "unknown"
+            print("[Tweaks] Posted Cmd+V sequence via \(label) for app=\(activeApp)")
         }
     }
     

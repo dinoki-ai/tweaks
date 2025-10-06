@@ -118,7 +118,7 @@ struct HotkeyFeedbackView: View {
                     .font(.system(.body, weight: .medium))
                     .foregroundColor(.white)
                 
-                Text("Pasting with emoji...")
+                Text("Tweaking via Osaurus...")
                     .font(.caption)
                     .foregroundColor(.white.opacity(0.8))
             }
@@ -192,7 +192,7 @@ struct HotkeyTestView: View {
             }
             
             Button(action: {
-                (NSApp.delegate as? AppDelegate)?.pasteTextWithEmoji()
+                (NSApp.delegate as? AppDelegate)?.pasteTweakedText()
                 feedback.hotkeyTriggered()
             }) {
                 HStack {
