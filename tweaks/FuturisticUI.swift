@@ -123,6 +123,8 @@ struct FuturisticButton: View {
         }
         Text(title)
           .font(.system(size: 13, weight: .semibold))
+          .lineLimit(1)
+          .truncationMode(.tail)
       }
       .foregroundColor(foregroundColor)
       .padding(.horizontal, 16)
@@ -250,3 +252,4 @@ extension View {
     FuturisticCard(content: AnyView(self))
   }
 }
+

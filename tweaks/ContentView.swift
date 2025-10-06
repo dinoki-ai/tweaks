@@ -228,6 +228,7 @@ struct MainView: View {
             )
             .neonGlow(color: FuturisticTheme.accent, radius: 8)
             .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
         }
 
         // Current Settings
@@ -437,6 +438,7 @@ struct SystemSettingsView: View {
   @Binding var recordedKeyCode: UInt32
   @Binding var recordedModifiers: UInt32
   @Binding var registrationResult: Bool?
+  private let actionControlWidth: CGFloat = 120
 
   var body: some View {
     VStack(spacing: 20) {
@@ -461,17 +463,30 @@ struct SystemSettingsView: View {
             .background(FuturisticTheme.accent.opacity(0.1))
             .cornerRadius(FuturisticTheme.smallCornerRadius)
             .lineLimit(1)
+            .fixedSize(horizontal: true, vertical: false)
 
-          FuturisticButton(
-            title: recordingShortcut ? "Recording..." : "Change",
-            icon: "keyboard",
-            action: {
-              // Temporarily suspend current hotkey so it doesn't fire while capturing
-              AppDelegate.shared?.suspendGlobalHotkey()
-              recordingShortcut = true
-            },
-            style: recordingShortcut ? .primary : .secondary
-          )
+          if recordingShortcut {
+            FuturisticButton(
+              title: "Recording…",
+              icon: "keyboard",
+              action: {},
+              style: .primary
+            )
+            .allowsHitTesting(false)
+            .frame(width: actionControlWidth)
+          } else {
+            FuturisticButton(
+              title: "Change",
+              icon: "keyboard",
+              action: {
+                // Temporarily suspend current hotkey so it doesn't fire while capturing
+                AppDelegate.shared?.suspendGlobalHotkey()
+                recordingShortcut = true
+              },
+              style: .secondary
+            )
+            .frame(width: actionControlWidth)
+          }
         }
 
         if recordingShortcut {
