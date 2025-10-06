@@ -1,4 +1,4 @@
-# Tweaks 🎯
+# Tweaks 🧠📋
 
 A simple macOS menu bar app that improves your clipboard text with AI and generates a new paste.
 
@@ -10,42 +10,58 @@ A simple macOS menu bar app that improves your clipboard text with AI and genera
 - **Visual Feedback**: See when hotkeys are triggered
 - **Easy Setup**: Clear onboarding for accessibility permissions
 
+## Prerequisites
+
+### Osaurus - Local LLM Server
+
+Tweaks requires [Osaurus](https://github.com/dinoki-ai/osaurus), a native Apple Silicon local LLM server, to provide AI-powered text improvements. Osaurus is built on Apple's MLX for maximum performance on M-series chips.
+
+#### Installation
+
+Install Osaurus using Homebrew:
+
+```bash
+brew install osaurus
+```
+
+#### Setup
+
+1. **Launch Osaurus**: After installation, launch Osaurus from your Applications folder or by running:
+
+   ```bash
+   osaurus
+   ```
+
+2. **Download a Model**:
+
+   - Click on the Osaurus menu bar icon
+   - Go to "Model Gallery" or "Downloads"
+   - Choose a model. Recommended options:
+     - **For beginners**: `Llama 3.2 3B Instruct 4bit` (fast, good quality)
+     - **For better quality**: `Qwen 2.5 7B Instruct 4bit` (slower, more capable)
+     - **For speed**: `Phi 3.5 Mini Instruct 4bit` (very fast, decent quality)
+   - Click "Download" and wait for it to complete
+
+3. **Verify it's Running**:
+   - Osaurus runs on `http://localhost:1337` by default
+   - You should see the Osaurus icon in your menu bar when it's active
+4. **Test the API** (optional):
+   ```bash
+   curl http://127.0.0.1:1337/v1/chat/completions \
+     -H "Content-Type: application/json" \
+     -d '{
+       "model": "llama-3.2-3b-instruct-4bit",
+       "messages": [{"role":"user","content":"Hello"}]
+     }'
+   ```
+
+> **Note**: Osaurus requires Apple Silicon (M1/M2/M3 chips). Intel Macs are not supported.
+
 ## Installation
 
 1. Clone the repository
 2. Open `tweaks.xcodeproj` in Xcode
 3. Build and run (Cmd+R)
-
-## AI Setup (Osaurus)
-
-Tweaks uses a minimal client (`Osaurus.swift`) to call a chat-completions style API to improve your text. By default it points to `http://localhost:1337` and expects an OpenAI-compatible endpoint at `/v1/chat/completions`.
-
-Configure the endpoint and optional API key via environment variables (recommended during development):
-
-1. In Xcode: Product → Scheme → Edit Scheme… → Run → Arguments → Environment Variables
-2. Add entries:
-   - `OSAURUS_BASE_URL` = `http://localhost:1337` (or your server URL)
-
-Quick sanity check (replace values as needed):
-
-```bash
-curl -s "$OSAURUS_BASE_URL/v1/chat/completions" \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer $OSAURUS_API_KEY" \
-  -d '{
-        "model": "llama-3.2-3b-instruct-4bit",
-        "messages": [
-          {"role":"system","content":"You are Osaurus Tweak. Improve the text."},
-          {"role":"user","content":"Please improve this sentence."}
-        ],
-        "temperature": 0.3
-      }'
-```
-
-Notes:
-
-- If `OSAURUS_BASE_URL` is not set, Tweaks defaults to `http://localhost:1337`.
-- The server must return an OpenAI-style response with `choices[0].message.content`.
 
 ## Development
 
@@ -59,10 +75,10 @@ See [DEBUG_SETUP.md](DEBUG_SETUP.md) for detailed development instructions.
 
 ## Requirements
 
-- macOS 14.0 or later
+- macOS 14.0 or later (Apple Silicon M1/M2/M3 required)
 - Xcode 16.0 or later
+- [Osaurus](https://github.com/dinoki-ai/osaurus) - Local LLM server (see Prerequisites above)
 - Accessibility permission (for hotkey functionality)
-- OpenAI-compatible chat completions API (default: `http://localhost:1337`), or set `OSAURUS_BASE_URL`
 
 ## Usage
 
