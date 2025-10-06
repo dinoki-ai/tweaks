@@ -196,7 +196,7 @@ struct HotkeyTestView: View {
       }
 
       Button(action: {
-        (NSApp.delegate as? AppDelegate)?.pasteTweakedText()
+        TweakService.shared.pasteTweakedText()
         feedback.hotkeyTriggered()
       }) {
         HStack {

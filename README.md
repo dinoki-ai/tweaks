@@ -1,6 +1,6 @@
 # Tweaks 🎯
 
-A simple macOS menu bar app that improves your clipboard text with AI and pastes it.
+A simple macOS menu bar app that improves your clipboard text with AI and generates a new paste.
 
 ## Features
 
@@ -76,24 +76,39 @@ Behavior details:
 - It then presses `Cmd+V` for you to paste in the foreground app and restores your original clipboard shortly after.
 - If the AI call fails, Tweaks falls back to pasting your original clipboard unchanged.
 
-## Architecture
+### Hotkey
 
-The project is organized for simplicity:
+- Default: `Control+T`.
+- Change it in the Settings tab. While recording, the current hotkey is temporarily suspended to avoid accidental triggers.
+
+### Privacy
+
+- All keyboard events require Accessibility permission. Your text is sent only to the endpoint you configure (local by default).
+
+## Architecture
 
 ```
 tweaks/
-├── tweaksApp.swift          # App entry point
-├── AppDelegate.swift        # Menu bar and hotkey handling
-├── ContentView.swift        # Main UI with tabs
-├── PermissionManager.swift  # Permission state management
-├── HotkeyFeedback.swift    # Visual/audio feedback
-├── Osaurus.swift            # Minimal OpenAI-compatible client and tweak helper
-└── DebugHelpers.swift      # Debug-only utilities
+├── tweaksApp.swift           # App entry point
+├── AppDelegate.swift         # Menu bar and popover wiring
+├── ContentView.swift         # Main UI (Overview, AI Model, Settings)
+│
+├── HotkeyManager.swift       # Centralized global hotkey registration/handler
+├── TweakService.swift        # Clipboard → AI → paste flow (streaming + restore)
+├── ShortcutRecorder.swift    # NSView wrapper to capture keyboard shortcuts
+├── ShortcutUtils.swift       # Display/convert key codes and modifiers
+│
+├── PermissionManager.swift   # Accessibility permission state and prompts
+├── HotkeyFeedback.swift      # Visual/audio feedback and test view
+│
+├── Osaurus.swift             # Minimal OpenAI-compatible client and defaults
+├── FuturisticUI.swift        # Theme + reusable UI components
+└── DebugHelpers.swift        # Debug-only utilities
 ```
 
 ### AI internals
 
-- `Osaurus.Defaults` sets the default `model`, `systemPrompt`, and `temperature` used for tweaks. Advanced users can change these in code.
+- `Osaurus.Defaults` sets default `model`, `systemPrompt`, and `temperature`.
 
 ## License
 

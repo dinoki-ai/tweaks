@@ -82,9 +82,8 @@ struct ContentView: View {
       RecordingView(isRecording: $recordingShortcut) { keyCode, modifiers in
         recordedKeyCode = keyCode
         recordedModifiers = modifiers
-        let success =
-          AppDelegate.shared?.updateGlobalHotkey(
-            keyCode: keyCode, modifiers: modifiers) ?? false
+        let success = HotkeyManager.shared.updateShortcut(
+          keyCode: keyCode, modifiers: modifiers)
         hotkeyRegistrationStatus = success
         // Auto-clear the status after a short delay
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
@@ -95,10 +94,10 @@ struct ContentView: View {
     )
     .onChange(of: recordingShortcut) { oldValue, isRecording in
       if isRecording {
-        AppDelegate.shared?.suspendGlobalHotkey()
+        HotkeyManager.shared.suspendShortcut()
       } else {
         // Re-register current shortcut when recording stops (in case user cancelled)
-        AppDelegate.shared?.registerGlobalHotkey(
+        _ = HotkeyManager.shared.registerShortcut(
           keyCode: recordedKeyCode, modifiers: recordedModifiers)
       }
     }
@@ -255,14 +254,7 @@ extension HeaderView {
       #endif
 
       // Re-enable hotkeys
-      if let keyCode = UserDefaults.standard.object(forKey: "HotkeyKeyCode") as? Int,
-        let modifiers = UserDefaults.standard.object(forKey: "HotkeyModifiers") as? Int
-      {
-        AppDelegate.shared?.registerGlobalHotkey(
-          keyCode: UInt32(keyCode),
-          modifiers: UInt32(modifiers)
-        )
-      }
+      HotkeyManager.shared.registerSavedShortcutOrDefault()
 
       // Refresh models
       Task {
@@ -274,7 +266,7 @@ extension HeaderView {
         print("[Tweaks] System became INACTIVE - disabling hotkeys")
       #endif
 
-      AppDelegate.shared?.suspendGlobalHotkey()
+      HotkeyManager.shared.suspendShortcut()
     }
   }
 
@@ -577,7 +569,7 @@ struct SystemSettingsView: View {
               icon: "keyboard",
               action: {
                 // Temporarily suspend current hotkey so it doesn't fire while capturing
-                AppDelegate.shared?.suspendGlobalHotkey()
+                HotkeyManager.shared.suspendShortcut()
                 recordingShortcut = true
               },
               style: .secondary
@@ -722,104 +714,6 @@ struct TestSection: View {
     .frame(maxWidth: .infinity)
     .padding()
     .glassEffect()
-  }
-}
-
-// MARK: - Recording View (unchanged)
-
-struct RecordingView: NSViewRepresentable {
-  @Binding var isRecording: Bool
-  let onRecord: (UInt32, UInt32) -> Void
-
-  func makeNSView(context: Context) -> RecordingNSView {
-    let v = RecordingNSView()
-    v.onRecord = { keyCode, modifiers in
-      onRecord(keyCode, modifiers)
-      DispatchQueue.main.async { isRecording = false }
-    }
-    return v
-  }
-
-  func updateNSView(_ nsView: RecordingNSView, context: Context) {
-    nsView.setRecording(isRecording)
-  }
-}
-
-class RecordingNSView: NSView {
-  private(set) var isRecording: Bool = false
-  var onRecord: ((UInt32, UInt32) -> Void)?
-
-  override var acceptsFirstResponder: Bool { true }
-
-  func setRecording(_ recording: Bool) {
-    isRecording = recording
-    if recording {
-      window?.makeFirstResponder(self)
-    }
-  }
-
-  override func keyDown(with event: NSEvent) {
-    guard isRecording else { return }
-    let keyCode = UInt32(event.keyCode)
-    let modifiers = convertModifiers(event.modifierFlags)
-    onRecord?(keyCode, modifiers)
-  }
-
-  private func convertModifiers(_ flags: NSEvent.ModifierFlags) -> UInt32 {
-    var mods: UInt32 = 0
-    if flags.contains(.shift) { mods |= UInt32(shiftKey) }
-    if flags.contains(.control) { mods |= UInt32(controlKey) }
-    if flags.contains(.option) { mods |= UInt32(optionKey) }
-    if flags.contains(.command) { mods |= UInt32(cmdKey) }
-    return mods
-  }
-}
-
-// MARK: - Helpers
-
-private func shortcutDisplayString(keyCode: UInt32, modifiers: UInt32) -> String {
-  var parts: [String] = []
-  if (modifiers & UInt32(cmdKey)) != 0 { parts.append("⌘") }
-  if (modifiers & UInt32(shiftKey)) != 0 { parts.append("⇧") }
-  if (modifiers & UInt32(optionKey)) != 0 { parts.append("⌥") }
-  if (modifiers & UInt32(controlKey)) != 0 { parts.append("⌃") }
-  let key = keyCodeToString(keyCode)
-  parts.append(key)
-  return parts.joined()
-}
-
-private func keyCodeToString(_ keyCode: UInt32) -> String {
-  // Explicit mapping for common macOS virtual key codes
-  let letters: [UInt32: String] = [
-    UInt32(kVK_ANSI_A): "A", UInt32(kVK_ANSI_B): "B", UInt32(kVK_ANSI_C): "C",
-    UInt32(kVK_ANSI_D): "D", UInt32(kVK_ANSI_E): "E", UInt32(kVK_ANSI_F): "F",
-    UInt32(kVK_ANSI_G): "G", UInt32(kVK_ANSI_H): "H", UInt32(kVK_ANSI_I): "I",
-    UInt32(kVK_ANSI_J): "J", UInt32(kVK_ANSI_K): "K", UInt32(kVK_ANSI_L): "L",
-    UInt32(kVK_ANSI_M): "M", UInt32(kVK_ANSI_N): "N", UInt32(kVK_ANSI_O): "O",
-    UInt32(kVK_ANSI_P): "P", UInt32(kVK_ANSI_Q): "Q", UInt32(kVK_ANSI_R): "R",
-    UInt32(kVK_ANSI_S): "S", UInt32(kVK_ANSI_T): "T", UInt32(kVK_ANSI_U): "U",
-    UInt32(kVK_ANSI_V): "V", UInt32(kVK_ANSI_W): "W", UInt32(kVK_ANSI_X): "X",
-    UInt32(kVK_ANSI_Y): "Y", UInt32(kVK_ANSI_Z): "Z",
-  ]
-
-  let digits: [UInt32: String] = [
-    UInt32(kVK_ANSI_0): "0", UInt32(kVK_ANSI_1): "1", UInt32(kVK_ANSI_2): "2",
-    UInt32(kVK_ANSI_3): "3", UInt32(kVK_ANSI_4): "4", UInt32(kVK_ANSI_5): "5",
-    UInt32(kVK_ANSI_6): "6", UInt32(kVK_ANSI_7): "7", UInt32(kVK_ANSI_8): "8",
-    UInt32(kVK_ANSI_9): "9",
-  ]
-
-  if let letter = letters[keyCode] { return letter }
-  if let digit = digits[keyCode] { return digit }
-
-  switch keyCode {
-  case UInt32(kVK_Space): return "Space"
-  case UInt32(kVK_Return): return "Return"
-  case UInt32(kVK_Escape): return "Esc"
-  case UInt32(kVK_Tab): return "Tab"
-  case UInt32(kVK_Delete): return "Delete"
-  default:
-    return "Key\(keyCode)"
   }
 }
 
