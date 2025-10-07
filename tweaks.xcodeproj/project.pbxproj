@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F0AE4B802E95926700316C89 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = F0B417462E92B6D700B4DB40 /* Sparkle */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		F0B417382E92B6D500B4DB40 /* tweaks.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = tweaks.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F0AE4B802E95926700316C89 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -95,15 +100,15 @@
 			);
 			mainGroup = F0B4172F2E92B6D500B4DB40;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F0B417472E92B6D700B4DB40 /* XCRemoteSwiftPackageReference "Sparkle" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F0B417392E92B6D500B4DB40 /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
 			targets = (
 				F0B417372E92B6D500B4DB40 /* tweaks */,
-			);
-			packageReferences = (
-				F0B417472E92B6D700B4DB40 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 		};
 /* End PBXProject section */
@@ -264,6 +269,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Tweaks;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
@@ -297,6 +303,7 @@
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_CFBundleDisplayName = Tweaks;
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
