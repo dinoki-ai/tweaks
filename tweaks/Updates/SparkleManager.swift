@@ -5,6 +5,7 @@
 //  Created on 10/7/25.
 //
 
+import Combine
 import Foundation
 import Sparkle
 
@@ -108,7 +109,7 @@ extension SparkleManager {
   var updateStatusString: String {
     if isCheckingForUpdates {
       return "Checking for updates..."
-    } else if let date = lastUpdateCheckDate {
+    } else if lastUpdateCheckDate != nil {
       return "Last checked \(lastUpdateCheckString)"
     } else {
       return "Updates not yet checked"

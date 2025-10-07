@@ -98,15 +98,9 @@ struct SystemSettingsView: View {
           .foregroundColor(FuturisticTheme.text)
 
         HStack {
-          VStack(alignment: .leading, spacing: 4) {
-            Text("Automatic Updates")
-              .font(.system(size: 12))
-              .foregroundColor(FuturisticTheme.textSecondary)
-
-            Text(sparkleManager.updateStatusString)
-              .font(.system(size: 11))
-              .foregroundColor(FuturisticTheme.textTertiary)
-          }
+          Text("Automatic Updates")
+            .font(.system(size: 12))
+            .foregroundColor(FuturisticTheme.textSecondary)
 
           Spacer()
 
@@ -119,6 +113,10 @@ struct SystemSettingsView: View {
         }
 
         HStack {
+          Text(sparkleManager.updateStatusString)
+            .font(.system(size: 11))
+            .foregroundColor(FuturisticTheme.textTertiary)
+
           Spacer()
 
           FuturisticButton(
@@ -130,7 +128,6 @@ struct SystemSettingsView: View {
             style: .secondary
           )
           .disabled(sparkleManager.isCheckingForUpdates || !sparkleManager.canCheckForUpdates)
-          .frame(width: actionControlWidth)
         }
       }
       .padding()
