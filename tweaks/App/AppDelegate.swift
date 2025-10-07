@@ -7,6 +7,7 @@
 
 import AppKit
 import Carbon
+import Sparkle
 import SwiftUI
 
 class AppDelegate: NSObject, NSApplicationDelegate {
@@ -23,6 +24,9 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     AppDelegate.shared = self
     // Set activation policy to accessory (no dock icon)
     NSApp.setActivationPolicy(.accessory)
+
+    // Initialize Sparkle for auto-updates
+    _ = SparkleManager.shared
 
     // Create the status bar item
     statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.variableLength)

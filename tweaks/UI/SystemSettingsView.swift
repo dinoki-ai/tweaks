@@ -5,6 +5,7 @@
 //  Hotkey settings and app info
 //
 
+import Sparkle
 import SwiftUI
 
 // MARK: - System Settings View and subviews
@@ -14,6 +15,7 @@ struct SystemSettingsView: View {
   @Binding var recordedKeyCode: UInt32
   @Binding var recordedModifiers: UInt32
   @Binding var registrationResult: Bool?
+  @StateObject private var sparkleManager = SparkleManager.shared
   private let actionControlWidth: CGFloat = 120
 
   var body: some View {
@@ -89,6 +91,51 @@ struct SystemSettingsView: View {
       .padding()
       .glassEffect()
 
+      // Updates Section
+      VStack(alignment: .leading, spacing: 12) {
+        Label("Updates", systemImage: "arrow.triangle.2.circlepath")
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundColor(FuturisticTheme.text)
+
+        HStack {
+          VStack(alignment: .leading, spacing: 4) {
+            Text("Automatic Updates")
+              .font(.system(size: 12))
+              .foregroundColor(FuturisticTheme.textSecondary)
+
+            Text(sparkleManager.updateStatusString)
+              .font(.system(size: 11))
+              .foregroundColor(FuturisticTheme.textTertiary)
+          }
+
+          Spacer()
+
+          Toggle("", isOn: $sparkleManager.automaticUpdateChecks)
+            .toggleStyle(SwitchToggleStyle())
+            .labelsHidden()
+            .onChange(of: sparkleManager.automaticUpdateChecks) { _, newValue in
+              sparkleManager.setAutomaticUpdateChecks(newValue)
+            }
+        }
+
+        HStack {
+          Spacer()
+
+          FuturisticButton(
+            title: sparkleManager.isCheckingForUpdates ? "Checking..." : "Check Now",
+            icon: "arrow.triangle.2.circlepath",
+            action: {
+              sparkleManager.checkForUpdates()
+            },
+            style: .secondary
+          )
+          .disabled(sparkleManager.isCheckingForUpdates || !sparkleManager.canCheckForUpdates)
+          .frame(width: actionControlWidth)
+        }
+      }
+      .padding()
+      .glassEffect()
+
       // App Info
       VStack(alignment: .leading, spacing: 16) {
         Label("About Tweaks", systemImage: "info.circle")
@@ -100,6 +147,7 @@ struct SystemSettingsView: View {
           InfoRow(icon: "keyboard.fill", text: "Global hotkey support")
           InfoRow(icon: "brain", text: "Powered by local AI (Osaurus)")
           InfoRow(icon: "lock.shield", text: "Privacy-focused, runs locally")
+          InfoRow(icon: "arrow.triangle.2.circlepath", text: "Auto-update enabled")
         }
       }
       .padding()

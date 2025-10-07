@@ -65,6 +65,7 @@
 			);
 			name = tweaks;
 			packageProductDependencies = (
+				F0B417462E92B6D700B4DB40 /* Sparkle */,
 			);
 			productName = tweaks;
 			productReference = F0B417382E92B6D500B4DB40 /* tweaks.app */;
@@ -100,6 +101,9 @@
 			projectRoot = "";
 			targets = (
 				F0B417372E92B6D500B4DB40 /* tweaks */,
+			);
+			packageReferences = (
+				F0B417472E92B6D700B4DB40 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 		};
 /* End PBXProject section */
@@ -333,6 +337,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F0B417472E92B6D700B4DB40 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.7.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F0B417462E92B6D700B4DB40 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F0B417472E92B6D700B4DB40 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F0B417302E92B6D500B4DB40 /* Project object */;
 }

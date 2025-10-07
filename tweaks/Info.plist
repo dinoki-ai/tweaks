@@ -11,5 +11,11 @@
     </dict>
     <key>NSAccessibilityUsageDescription</key>
     <string>Tweaks needs accessibility permission to monitor keyboard shortcuts and perform text pasting operations.</string>
+    <key>SUFeedURL</key>
+    <string>https://dinoki-ai.github.io/tweaks/appcast.xml</string>
+    <key>SUEnableAutomaticChecks</key>
+    <true/>
+    <key>SUPublicEDKey</key>
+    <string>TO_BE_REPLACED_WITH_PUBLIC_KEY</string>
 </dict>
 </plist>
