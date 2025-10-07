@@ -170,22 +170,31 @@ Behavior details:
 
 ```
 tweaks/
-├── tweaksApp.swift           # App entry point
-├── AppDelegate.swift         # Menu bar and popover wiring
-├── ContentView.swift         # Main UI (Overview, AI Model, Settings)
-│
-├── HotkeyManager.swift       # Centralized global hotkey registration/handler
-├── TweakService.swift        # Clipboard → AI → paste flow (streaming + restore)
-├── ShortcutRecorder.swift    # NSView wrapper to capture keyboard shortcuts
-├── ShortcutUtils.swift       # Display/convert key codes and modifiers
-│
-├── PermissionManager.swift   # Accessibility permission state and prompts
-├── HotkeyFeedback.swift      # Visual/audio feedback and test view
-│
-├── Osaurus.swift             # Minimal OpenAI-compatible client and defaults
-├── FuturisticUI.swift        # Theme + reusable UI components
-├── DebugHelpers.swift        # Debug-only utilities
-└── PromptEditorView.swift    # AI prompt configuration UI
+├── App/                      # App entry point and app lifecycle
+│   ├── tweaksApp.swift
+│   └── AppDelegate.swift
+├── UI/                       # Main UI and reusable components
+│   ├── ContentView.swift
+│   ├── HotkeyFeedback.swift
+│   ├── PromptEditorView.swift
+│   └── FuturisticUI.swift
+├── Hotkey/                   # Global hotkey capture and helpers
+│   ├── HotkeyManager.swift
+│   ├── ShortcutRecorder.swift
+│   └── ShortcutUtils.swift
+├── Permissions/              # Accessibility permission state and prompts
+│   └── PermissionManager.swift
+├── Services/                 # Clipboard → AI → paste flow
+│   └── TweakService.swift
+├── AI/                       # OpenAI-compatible client and defaults
+│   └── Osaurus.swift
+├── Settings/                 # User defaults and app settings
+│   └── SettingsManager.swift
+├── Debug/                    # Debug-only utilities
+│   └── DebugHelpers.swift
+├── Assets.xcassets
+├── Info.plist
+└── tweaks.entitlements
 ```
 
 ### AI internals

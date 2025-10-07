@@ -6,8 +6,8 @@
 //
 
 import AppKit
-import Foundation
 import Carbon
+import Foundation
 
 @MainActor
 final class TweakService {
