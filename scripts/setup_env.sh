@@ -16,5 +16,3 @@ else
   export VERSION="1.0.0-dev"
   echo "Building version: 1.0.0-dev"
 fi
-
-

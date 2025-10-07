@@ -2,7 +2,7 @@
 //  FuturisticUI.swift
 //  tweaks
 //
-//  Futuristic UI components and styles
+//  Futuristic minimalist UI components and styles
 //
 
 import SwiftUI
@@ -10,57 +10,45 @@ import SwiftUI
 // MARK: - Visual Constants
 
 struct FuturisticTheme {
-  // Colors
-  static let background = Color(NSColor(red: 0.05, green: 0.05, blue: 0.08, alpha: 1.0))
-  static let surface = Color(NSColor(red: 0.10, green: 0.10, blue: 0.15, alpha: 1.0))
-  static let surfaceLight = Color(NSColor(red: 0.15, green: 0.15, blue: 0.20, alpha: 1.0))
-  static let accent = Color(NSColor(red: 0.4, green: 0.8, blue: 1.0, alpha: 1.0))
-  static let accentSecondary = Color(NSColor(red: 0.8, green: 0.4, blue: 1.0, alpha: 1.0))
-  static let text = Color.white
-  static let textSecondary = Color.white.opacity(0.7)
-  static let textTertiary = Color.white.opacity(0.5)
-  static let success = Color(NSColor(red: 0.3, green: 0.9, blue: 0.5, alpha: 1.0))
-  static let warning = Color(NSColor(red: 1.0, green: 0.8, blue: 0.3, alpha: 1.0))
-  static let error = Color(NSColor(red: 1.0, green: 0.3, blue: 0.3, alpha: 1.0))
+  // Minimalist Color Palette - Using primary accent color only
+  static let background = Color(NSColor(red: 0.02, green: 0.02, blue: 0.03, alpha: 1.0))
+  static let surface = Color(NSColor(red: 0.08, green: 0.08, blue: 0.10, alpha: 1.0))
+  static let surfaceLight = Color(NSColor(red: 0.12, green: 0.12, blue: 0.14, alpha: 1.0))
 
-  // Sizing
-  static let cornerRadius: CGFloat = 12
-  static let smallCornerRadius: CGFloat = 8
-  static let borderWidth: CGFloat = 1
-  static let glowRadius: CGFloat = 8
+  // Primary accent color - clean cyan blue
+  static let accent = Color(NSColor(red: 0.3, green: 0.7, blue: 0.95, alpha: 1.0))
+
+  // Text hierarchy using opacity
+  static let text = Color.white
+  static let textSecondary = Color.white.opacity(0.6)
+  static let textTertiary = Color.white.opacity(0.4)
+
+  // Semantic colors using accent variations
+  static let interactive = accent
+  static let interactiveHover = accent.opacity(0.8)
+  static let interactiveDisabled = accent.opacity(0.3)
+
+  // Sizing - cleaner, more minimal
+  static let cornerRadius: CGFloat = 8
+  static let smallCornerRadius: CGFloat = 4
+  static let borderWidth: CGFloat = 0.5
+  static let glowRadius: CGFloat = 4
 }
 
 // MARK: - View Modifiers
 
 struct GlassEffect: ViewModifier {
-  var opacity: Double = 0.1
+  var opacity: Double = 0.05
 
   func body(content: Content) -> some View {
     content
       .background(
-        ZStack {
-          FuturisticTheme.surface.opacity(opacity)
-          LinearGradient(
-            colors: [
-              FuturisticTheme.accent.opacity(0.05),
-              FuturisticTheme.accentSecondary.opacity(0.05),
-            ],
-            startPoint: .topLeading,
-            endPoint: .bottomTrailing
-          )
-        }
+        FuturisticTheme.surface.opacity(opacity)
       )
       .overlay(
         RoundedRectangle(cornerRadius: FuturisticTheme.cornerRadius)
           .stroke(
-            LinearGradient(
-              colors: [
-                Color.white.opacity(0.2),
-                Color.white.opacity(0.05),
-              ],
-              startPoint: .topLeading,
-              endPoint: .bottomTrailing
-            ),
+            FuturisticTheme.accent.opacity(0.1),
             lineWidth: FuturisticTheme.borderWidth
           )
       )
@@ -74,8 +62,7 @@ struct NeonGlow: ViewModifier {
 
   func body(content: Content) -> some View {
     content
-      .shadow(color: color.opacity(0.5), radius: radius)
-      .shadow(color: color.opacity(0.3), radius: radius * 2)
+      .shadow(color: color.opacity(0.2), radius: radius)
   }
 }
 
@@ -97,61 +84,67 @@ struct FuturisticButton: View {
   private var backgroundColor: Color {
     switch style {
     case .primary:
-      return isPressed ? FuturisticTheme.accent.opacity(0.8) : FuturisticTheme.accent
+      return isPressed
+        ? FuturisticTheme.accent.opacity(0.9)
+        : isHovered ? FuturisticTheme.accent : FuturisticTheme.accent.opacity(0.95)
     case .secondary:
-      return isPressed ? FuturisticTheme.surface.opacity(0.8) : FuturisticTheme.surface
+      return isPressed
+        ? FuturisticTheme.surface.opacity(0.5) : isHovered ? FuturisticTheme.surface : Color.clear
     case .ghost:
-      return isHovered ? FuturisticTheme.surface.opacity(0.3) : Color.clear
+      return Color.clear
     }
   }
 
   private var foregroundColor: Color {
     switch style {
     case .primary:
-      return .black
-    case .secondary, .ghost:
-      return FuturisticTheme.text
+      return FuturisticTheme.background
+    case .secondary:
+      return isHovered ? FuturisticTheme.text : FuturisticTheme.textSecondary
+    case .ghost:
+      return isHovered ? FuturisticTheme.accent : FuturisticTheme.textSecondary
     }
   }
 
   var body: some View {
     Button(action: action) {
-      HStack(spacing: 6) {
+      HStack(spacing: 4) {
         if let icon = icon {
           Image(systemName: icon)
-            .font(.system(size: 12, weight: .semibold))
+            .font(.system(size: 11, weight: .medium))
         }
         Text(title)
-          .font(.system(size: 13, weight: .semibold))
+          .font(.system(size: 12, weight: .medium))
           .lineLimit(1)
           .truncationMode(.tail)
       }
       .foregroundColor(foregroundColor)
-      .padding(.horizontal, 16)
-      .padding(.vertical, 8)
+      .padding(.horizontal, 14)
+      .padding(.vertical, 7)
       .background(backgroundColor)
       .cornerRadius(FuturisticTheme.smallCornerRadius)
       .overlay(
         RoundedRectangle(cornerRadius: FuturisticTheme.smallCornerRadius)
           .stroke(
-            style == .ghost ? FuturisticTheme.accent.opacity(0.3) : Color.clear,
-            lineWidth: 1
+            style == .secondary
+              ? FuturisticTheme.accent.opacity(isHovered ? 0.3 : 0.1)
+              : style == .ghost
+                ? FuturisticTheme.accent.opacity(isHovered ? 0.4 : 0.2) : Color.clear,
+            lineWidth: FuturisticTheme.borderWidth
           )
       )
     }
     .buttonStyle(PlainButtonStyle())
-    .scaleEffect(isPressed ? 0.95 : 1.0)
+    .scaleEffect(isPressed ? 0.98 : 1.0)
+    .animation(.easeInOut(duration: 0.1), value: isPressed)
+    .animation(.easeInOut(duration: 0.15), value: isHovered)
     .onHover { hovering in
-      withAnimation(.easeInOut(duration: 0.2)) {
-        isHovered = hovering
-      }
+      isHovered = hovering
     }
     .onLongPressGesture(
       minimumDuration: 0, maximumDistance: .infinity,
       pressing: { pressing in
-        withAnimation(.easeInOut(duration: 0.1)) {
-          isPressed = pressing
-        }
+        isPressed = pressing
       }, perform: {})
   }
 }
@@ -163,32 +156,39 @@ struct FuturisticSegmentedControl: View {
   @Namespace private var animation
 
   var body: some View {
-    HStack(spacing: 4) {
+    HStack(spacing: 2) {
       ForEach(Array(options.enumerated()), id: \.offset) { index, option in
         Text(option)
-          .font(.system(size: 12, weight: .medium))
-          .foregroundColor(selection == index ? .black : FuturisticTheme.textSecondary)
-          .padding(.horizontal, 16)
-          .padding(.vertical, 6)
+          .font(.system(size: 11, weight: .medium))
+          .foregroundColor(
+            selection == index ? FuturisticTheme.background : FuturisticTheme.textSecondary
+          )
+          .padding(.horizontal, 12)
+          .padding(.vertical, 5)
           .background(
             ZStack {
               if selection == index {
                 FuturisticTheme.accent
-                  .cornerRadius(FuturisticTheme.smallCornerRadius)
+                  .cornerRadius(FuturisticTheme.smallCornerRadius - 1)
                   .matchedGeometryEffect(id: "selection", in: animation)
               }
             }
           )
+          .contentShape(Rectangle())
           .onTapGesture {
-            withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+            withAnimation(.easeInOut(duration: 0.2)) {
               selection = index
             }
           }
       }
     }
-    .padding(3)
-    .background(FuturisticTheme.surface)
-    .cornerRadius(FuturisticTheme.smallCornerRadius + 3)
+    .padding(2)
+    .background(FuturisticTheme.surface.opacity(0.5))
+    .overlay(
+      RoundedRectangle(cornerRadius: FuturisticTheme.smallCornerRadius + 2)
+        .stroke(FuturisticTheme.accent.opacity(0.1), lineWidth: FuturisticTheme.borderWidth)
+    )
+    .cornerRadius(FuturisticTheme.smallCornerRadius + 2)
   }
 }
 
@@ -208,19 +208,22 @@ struct FuturisticTextField: View {
       }
     }
     .textFieldStyle(PlainTextFieldStyle())
-    .font(.system(size: 13))
+    .font(.system(size: 12))
     .foregroundColor(FuturisticTheme.text)
-    .padding(.horizontal, 12)
-    .padding(.vertical, 10)
-    .background(FuturisticTheme.surface)
+    .padding(.horizontal, 10)
+    .padding(.vertical, 8)
+    .background(
+      FuturisticTheme.surface.opacity(isFocused ? 0.8 : 0.3)
+    )
     .cornerRadius(FuturisticTheme.smallCornerRadius)
     .overlay(
       RoundedRectangle(cornerRadius: FuturisticTheme.smallCornerRadius)
         .stroke(
-          isFocused ? FuturisticTheme.accent : Color.white.opacity(0.1),
-          lineWidth: 1
+          isFocused ? FuturisticTheme.accent.opacity(0.5) : FuturisticTheme.accent.opacity(0.1),
+          lineWidth: FuturisticTheme.borderWidth
         )
     )
+    .animation(.easeInOut(duration: 0.15), value: isFocused)
     .focused($isFocused)
   }
 }
@@ -230,7 +233,7 @@ struct FuturisticCard: View {
 
   var body: some View {
     content
-      .padding()
+      .padding(16)
       .modifier(GlassEffect())
   }
 }
@@ -238,7 +241,7 @@ struct FuturisticCard: View {
 // MARK: - Extension helpers
 
 extension View {
-  func glassEffect(opacity: Double = 0.1) -> some View {
+  func glassEffect(opacity: Double = 0.05) -> some View {
     modifier(GlassEffect(opacity: opacity))
   }
 
@@ -250,5 +253,13 @@ extension View {
 
   func futuristicCard() -> some View {
     FuturisticCard(content: AnyView(self))
+  }
+
+  // Additional minimalist helpers
+  func minimalistBorder(opacity: Double = 0.1) -> some View {
+    self.overlay(
+      RoundedRectangle(cornerRadius: FuturisticTheme.cornerRadius)
+        .stroke(FuturisticTheme.accent.opacity(opacity), lineWidth: FuturisticTheme.borderWidth)
+    )
   }
 }

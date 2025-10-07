@@ -144,10 +144,10 @@ struct TestSection: View {
       if feedbackManager.showingFeedback {
         HStack {
           Image(systemName: "checkmark.circle.fill")
-            .foregroundColor(FuturisticTheme.success)
+            .foregroundColor(FuturisticTheme.accent)
           Text("Hotkey triggered!")
             .font(.system(size: 11, weight: .medium))
-            .foregroundColor(FuturisticTheme.success)
+            .foregroundColor(FuturisticTheme.accent)
         }
         .transition(.scale.combined(with: .opacity))
       }

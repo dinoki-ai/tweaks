@@ -36,7 +36,7 @@ struct AISettingsView: View {
           VStack(spacing: 8) {
             Image(systemName: "exclamationmark.triangle")
               .font(.system(size: 24))
-              .foregroundColor(FuturisticTheme.warning)
+              .foregroundColor(FuturisticTheme.accent.opacity(0.6))
             Text(error)
               .font(.system(size: 11))
               .foregroundColor(FuturisticTheme.textSecondary)

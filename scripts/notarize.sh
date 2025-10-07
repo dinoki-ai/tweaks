@@ -17,5 +17,3 @@ xcrun notarytool submit "build_output/Tweaks-${VERSION}.dmg" \
 
 xcrun stapler staple "build_output/Tweaks-${VERSION}.dmg"
 cp "build_output/Tweaks-${VERSION}.dmg" "build_output/Tweaks.dmg"
-
-

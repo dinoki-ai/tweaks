@@ -40,5 +40,3 @@ while read -r DRAFT_ID; do
       2>/dev/null || true
   fi
 done
-
-

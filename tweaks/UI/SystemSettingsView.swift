@@ -80,7 +80,8 @@ struct SystemSettingsView: View {
         } else if let result = registrationResult {
           HStack(spacing: 8) {
             Image(systemName: result ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-              .foregroundColor(result ? FuturisticTheme.success : FuturisticTheme.warning)
+              .foregroundColor(
+                result ? FuturisticTheme.accent : FuturisticTheme.accent.opacity(0.6))
             Text(result ? "Hotkey updated" : "Failed to register hotkey")
               .font(.system(size: 11))
               .foregroundColor(FuturisticTheme.textSecondary)
@@ -157,7 +158,7 @@ struct SystemSettingsView: View {
         action: { NSApp.terminate(nil) },
         style: .secondary
       )
-      .foregroundColor(FuturisticTheme.error)
+      .foregroundColor(FuturisticTheme.textSecondary)
     }
   }
 }

@@ -147,7 +147,7 @@ struct PromptRow: View {
           Button(action: onDelete) {
             Image(systemName: "trash")
               .font(.system(size: 11))
-              .foregroundColor(FuturisticTheme.error.opacity(0.8))
+              .foregroundColor(FuturisticTheme.textSecondary.opacity(0.8))
           }
           .buttonStyle(PlainButtonStyle())
         }

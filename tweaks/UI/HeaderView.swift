@@ -25,7 +25,7 @@ struct HeaderView: View {
           Circle()
             .fill(
               LinearGradient(
-                colors: [FuturisticTheme.accent, FuturisticTheme.accentSecondary],
+                colors: [FuturisticTheme.accent, FuturisticTheme.accent.opacity(0.6)],
                 startPoint: .topLeading,
                 endPoint: .bottomTrailing
               )
