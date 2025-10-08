@@ -271,11 +271,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tweaks;
 				INFOPLIST_KEY_CFBundleIdentifier = com.dinoki.tweaks;
+				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_NSAppTransportSecurity = {
-					NSAllowsArbitraryLoads = YES;
-					NSAllowsLocalNetworking = YES;
-				};
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Tweaks needs accessibility permission to monitor keyboard shortcuts and perform text pasting operations.";
 				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
 				INFOPLIST_KEY_SUFeedURL = "https://dinoki-ai.github.io/tweaks/appcast.xml";
@@ -314,11 +313,10 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_KEY_CFBundleDisplayName = Tweaks;
 				INFOPLIST_KEY_CFBundleIdentifier = com.dinoki.tweaks;
+				INFOPLIST_KEY_CFBundleVersion = "$(CURRENT_PROJECT_VERSION)";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
-				INFOPLIST_KEY_NSAppTransportSecurity = {
-					NSAllowsArbitraryLoads = YES;
-					NSAllowsLocalNetworking = YES;
-				};
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsArbitraryLoads = YES;
+				INFOPLIST_KEY_NSAppTransportSecurity_NSAllowsLocalNetworking = YES;
 				INFOPLIST_KEY_NSAccessibilityUsageDescription = "Tweaks needs accessibility permission to monitor keyboard shortcuts and perform text pasting operations.";
 				INFOPLIST_KEY_SUEnableAutomaticChecks = YES;
 				INFOPLIST_KEY_SUFeedURL = "https://dinoki-ai.github.io/tweaks/appcast.xml";
