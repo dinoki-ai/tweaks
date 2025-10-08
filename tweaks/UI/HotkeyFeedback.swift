@@ -50,8 +50,9 @@ class HotkeyFeedbackManager: ObservableObject {
     DispatchQueue.main.async {
       // Create or reuse feedback window
       if self.feedbackWindow == nil {
+        let fixedSize = NSSize(width: 200, height: 60)
         let window = NSWindow(
-          contentRect: NSRect(x: 0, y: 0, width: 200, height: 60),
+          contentRect: NSRect(origin: .zero, size: fixedSize),
           styleMask: [.borderless],
           backing: .buffered,
           defer: false
@@ -62,19 +63,24 @@ class HotkeyFeedbackManager: ObservableObject {
         window.isReleasedWhenClosed = false
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        let contentView = NSHostingView(rootView: HotkeyFeedbackView())
-        window.contentView = contentView
+        let controller = NSHostingController(rootView: HotkeyFeedbackView().fixedSize())
+        window.contentViewController = controller
+
+        // Lock the content size to avoid NSHostingView resizing the window during layout
+        window.setContentSize(fixedSize)
+        window.contentMinSize = fixedSize
+        window.contentMaxSize = fixedSize
 
         self.feedbackWindow = window
       }
 
       // Position window at bottom right of screen
-      if let screen = NSScreen.main {
+      if let screen = NSScreen.main, let window = self.feedbackWindow {
         let screenFrame = screen.visibleFrame
-        let windowFrame = self.feedbackWindow!.frame
+        let windowFrame = window.frame
         let x = screenFrame.maxX - windowFrame.width - 20
         let y = screenFrame.minY + 20
-        self.feedbackWindow!.setFrameOrigin(NSPoint(x: x, y: y))
+        window.setFrameOrigin(NSPoint(x: x, y: y))
       }
 
       // Show with animation
