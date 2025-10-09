@@ -18,6 +18,10 @@ struct AISettingsView: View {
 
   var body: some View {
     VStack(spacing: 20) {
+      if !Osaurus.isRunning() {
+        OsaurusRequirementCard()
+      }
+
       // Model Selection
       VStack(alignment: .leading, spacing: 12) {
         Label("AI Model", systemImage: "cpu")

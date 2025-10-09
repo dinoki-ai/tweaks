@@ -90,6 +90,10 @@ class SparkleManager: NSObject, ObservableObject {
 
 // MARK: - Sparkle Delegate
 extension SparkleManager: SPUUpdaterDelegate {
+  func allowedChannels(for updater: SPUUpdater) -> Set<String> {
+    return Set(["release"])
+  }
+
   func feedURLString(for updater: SPUUpdater) -> String? {
     return "https://dinoki-ai.github.io/tweaks/appcast.xml"
   }

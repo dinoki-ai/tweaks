@@ -20,6 +20,19 @@ struct MainView: View {
 
   var body: some View {
     VStack(spacing: 20) {
+      // Osaurus Requirement
+      #if DEBUG
+        if ProcessInfo.processInfo.environment["FORCE_SHOW_OSAURUS_CARD"] != nil
+          || !Osaurus.isRunning()
+        {
+          OsaurusRequirementCard()
+        }
+      #else
+        if !Osaurus.isRunning() {
+          OsaurusRequirementCard()
+        }
+      #endif
+
       // Hero Section
       VStack(spacing: 16) {
         // Hotkey Display
