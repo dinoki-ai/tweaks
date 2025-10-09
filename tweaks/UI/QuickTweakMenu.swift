@@ -6,7 +6,6 @@
 //
 
 import AppKit
-import Carbon
 import SwiftUI
 
 // MARK: - Model
@@ -25,8 +24,6 @@ struct TweakAction: Identifiable {
 final class QuickTweakMenuPresenter: NSObject {
   static let shared = QuickTweakMenuPresenter()
 
-  private var popover: NSPopover?
-  private var anchorWindow: NSWindow?
   private var hudWindow: NSWindow?
   private var actions: [TweakAction] = QuickTweakMenuPresenter.defaultActions
 
@@ -93,14 +90,6 @@ final class QuickTweakMenuPresenter: NSObject {
   }
 
   func close() {
-    if let popover, popover.isShown {
-      popover.performClose(nil)
-    }
-    popover = nil
-    if let window = anchorWindow {
-      window.orderOut(nil)
-      anchorWindow = nil
-    }
     if let window = hudWindow {
       window.orderOut(nil)
       hudWindow = nil

@@ -105,6 +105,7 @@ final class TweakService {
   ) async {
     let pasteboard = NSPasteboard.general
     do {
+      HotkeyFeedbackManager.shared.beginLoading()
       let client = try Osaurus.make()
 
       let stream = client.tweakStream(
@@ -166,6 +167,7 @@ final class TweakService {
         }
       }
     }
+    HotkeyFeedbackManager.shared.endLoading()
   }
 
   private static func postCmdV(tap: CGEventTapLocation, label: String) {

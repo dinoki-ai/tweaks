@@ -6,7 +6,6 @@
 //
 
 import AppKit
-import Carbon
 import Sparkle
 import SwiftUI
 
@@ -14,10 +13,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   static var shared: AppDelegate?
   var statusItem: NSStatusItem?
   var popover = NSPopover()
-  var hotKeyRef: EventHotKeyRef?
-  var hotKeyEventHandler: EventHandlerRef?
-  let hotkeyKeyCodeDefaultsKey = "HotkeyKeyCode"
-  let hotkeyModifiersDefaultsKey = "HotkeyModifiers"
 
   func applicationDidFinishLaunching(_ notification: Notification) {
     // Expose shared reference for convenient access from SwiftUI views
@@ -56,18 +51,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
-  func installHotkeyHandlerIfNeeded() { HotkeyManager.shared.installHandlerIfNeeded() }
-
-  @discardableResult
-  func registerGlobalHotkey(keyCode: UInt32, modifiers: UInt32) -> Bool {
-    HotkeyManager.shared.registerShortcut(keyCode: keyCode, modifiers: modifiers)
-  }
-
-  @discardableResult
-  func updateGlobalHotkey(keyCode: UInt32, modifiers: UInt32) -> Bool {
-    HotkeyManager.shared.updateShortcut(keyCode: keyCode, modifiers: modifiers)
-  }
-
   func pasteTweakedText() { TweakService.shared.pasteTweakedText() }
 
   private func postCmdV(tap: CGEventTapLocation, label: String) {}
@@ -78,7 +61,5 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   // Temporarily unregister the current hotkey (used while recording a new shortcut)
-  func suspendGlobalHotkey() {
-    HotkeyManager.shared.suspendShortcut()
-  }
+  func suspendGlobalHotkey() { HotkeyManager.shared.suspendShortcut() }
 }
