@@ -10,23 +10,24 @@ import Foundation
 import Sparkle
 
 /// Manages Sparkle updates for the app
-class SparkleManager: ObservableObject {
+class SparkleManager: NSObject, ObservableObject {
   static let shared = SparkleManager()
 
-  let updaterController: SPUStandardUpdaterController
+  lazy var updaterController: SPUStandardUpdaterController = {
+    SPUStandardUpdaterController(
+      startingUpdater: true,
+      updaterDelegate: self,
+      userDriverDelegate: nil
+    )
+  }()
 
   @Published var canCheckForUpdates = false
   @Published var lastUpdateCheckDate: Date?
   @Published var automaticUpdateChecks = true
   @Published var isCheckingForUpdates = false
 
-  private init() {
-    updaterController = SPUStandardUpdaterController(
-      startingUpdater: true,
-      updaterDelegate: self,
-      userDriverDelegate: nil
-    )
-
+  private override init() {
+    super.init()
     setupBindings()
   }
 

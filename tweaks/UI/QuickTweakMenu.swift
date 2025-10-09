@@ -33,6 +33,7 @@ final class QuickTweakMenuPresenter: NSObject {
   // Track previous front app for fallback key capture when tap is unavailable
   private var previousFrontApp: NSRunningApplication?
   private var activatedForKeyCapture: Bool = false
+  private var localKeyMonitor: Any?
 
   // Note: legacy popover/caret code removed in favor of centered HUD
 
@@ -100,6 +101,33 @@ final class QuickTweakMenuPresenter: NSObject {
       }
       window.makeKeyAndOrderFront(nil)
       activatedForKeyCapture = true
+
+      // Add a local key monitor so digits are captured even if first responder fails
+      localKeyMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
+        guard let self = self else { return event }
+        let keyCode = Int(event.keyCode)
+        let selected: Int?
+        switch keyCode {
+        case 18: selected = 1  // ANSI 1
+        case 19: selected = 2  // ANSI 2
+        case 20: selected = 3  // ANSI 3
+        case 21: selected = 4  // ANSI 4
+        case 83: selected = 1  // Keypad 1
+        case 84: selected = 2  // Keypad 2
+        case 85: selected = 3  // Keypad 3
+        case 86: selected = 4  // Keypad 4
+        case 53:
+          self.close()
+          return nil
+        default:
+          selected = nil
+        }
+        if let number = selected {
+          self.performAction(forNumber: number)
+          return nil  // swallow so it doesn't type/beep
+        }
+        return event
+      }
     } else {
       activatedForKeyCapture = false
     }
@@ -112,6 +140,11 @@ final class QuickTweakMenuPresenter: NSObject {
     }
 
     uninstallDigitInterceptionTap()
+
+    if let monitor = localKeyMonitor {
+      NSEvent.removeMonitor(monitor)
+      localKeyMonitor = nil
+    }
 
     // Restore previous front app focus if we had to activate for key capture
     if activatedForKeyCapture {
@@ -252,17 +285,38 @@ struct CenteredTweakHUDView: View {
         )
     )
     .overlay(
-      KeyCatcher { _, chars in
-        guard let c = chars?.first else { return }
-        if c >= "1" && c <= "4" {
-          let selected = Int(String(c))!
+      KeyCatcher { keyCode, chars in
+        // Prefer physical key codes for reliability (handles ANSI row and keypad)
+        let selectedNumber: Int? = {
+          switch keyCode {
+          case 18: return 1  // ANSI 1
+          case 19: return 2  // ANSI 2
+          case 20: return 3  // ANSI 3
+          case 21: return 4  // ANSI 4
+          case 83: return 1  // Keypad 1
+          case 84: return 2  // Keypad 2
+          case 85: return 3  // Keypad 3
+          case 86: return 4  // Keypad 4
+          default:
+            if let c = chars?.first, c >= "1" && c <= "4" {
+              return Int(String(c))
+            }
+            return nil
+          }
+        }()
+
+        if let selected = selectedNumber {
           highlighted = selected
           if let action = actions.first(where: { $0.number == selected }) {
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.05) {
               onSelect(action)
             }
           }
-        } else if c == "\u{1B}" {
+          return
+        }
+
+        // Escape to dismiss (by character or physical key code 53)
+        if chars?.first == "\u{1B}" || keyCode == 53 {
           onDismiss()
         }
       }
@@ -288,6 +342,17 @@ extension QuickTweakMenuPresenter {
 
     let mask = CGEventMask(1 << CGEventType.keyDown.rawValue)
     let callback: CGEventTapCallBack = { _, type, event, userInfo in
+      // If the tap gets disabled, try to re-enable it
+      if type == .tapDisabledByTimeout || type == .tapDisabledByUserInput {
+        if let userInfo = userInfo {
+          let presenter = Unmanaged<QuickTweakMenuPresenter>.fromOpaque(userInfo)
+            .takeUnretainedValue()
+          if let tap = presenter.eventTap {
+            CGEvent.tapEnable(tap: tap, enable: true)
+          }
+        }
+        return Unmanaged.passUnretained(event)
+      }
       guard type == .keyDown, let userInfo = userInfo else {
         return Unmanaged.passUnretained(event)
       }
