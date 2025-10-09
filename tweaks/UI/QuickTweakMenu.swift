@@ -30,6 +30,9 @@ final class QuickTweakMenuPresenter: NSObject {
   // CGEvent tap to intercept digit keys while HUD is visible
   private var eventTap: CFMachPort?
   private var eventTapRunLoopSource: CFRunLoopSource?
+  // Track previous front app for fallback key capture when tap is unavailable
+  private var previousFrontApp: NSRunningApplication?
+  private var activatedForKeyCapture: Bool = false
 
   // Note: legacy popover/caret code removed in favor of centered HUD
 
@@ -57,11 +60,11 @@ final class QuickTweakMenuPresenter: NSObject {
     let view = CenteredTweakHUDView(
       actions: actions,
       onSelect: { [weak self] action in
-        // Invoke AI using selected slot's system prompt, then close HUD
-        TweakService.shared.pasteTweakedText(usingSystemPrompt: action.systemPrompt)
-        self?.close()
+        self?.performAction(forNumber: action.number)
       },
-      onDismiss: { [weak self] in self?.close() }
+      onDismiss: { [weak self] in
+        self?.close()
+      }
     )
     let controller = NSHostingController(rootView: view)
     window.contentViewController = controller
@@ -86,7 +89,20 @@ final class QuickTweakMenuPresenter: NSObject {
     window.orderFrontRegardless()
     hudWindow = window
 
-    installDigitInterceptionTap()
+    // Attempt global digit interception; fall back to local key focus if unavailable
+    previousFrontApp = NSWorkspace.shared.frontmostApplication
+    let tapInstalled = installDigitInterceptionTap()
+    if !tapInstalled {
+      if #available(macOS 14.0, *) {
+        NSApp.activate()
+      } else {
+        NSApp.activate(ignoringOtherApps: true)
+      }
+      window.makeKeyAndOrderFront(nil)
+      activatedForKeyCapture = true
+    } else {
+      activatedForKeyCapture = false
+    }
   }
 
   func close() {
@@ -96,6 +112,13 @@ final class QuickTweakMenuPresenter: NSObject {
     }
 
     uninstallDigitInterceptionTap()
+
+    // Restore previous front app focus if we had to activate for key capture
+    if activatedForKeyCapture {
+      previousFrontApp?.activate(options: [])
+    }
+    previousFrontApp = nil
+    activatedForKeyCapture = false
   }
 
   // Default actions used by the menu
@@ -260,8 +283,8 @@ struct CenteredTweakHUDView: View {
 // MARK: - Global Digit Interception
 
 extension QuickTweakMenuPresenter {
-  private func installDigitInterceptionTap() {
-    guard eventTap == nil else { return }
+  private func installDigitInterceptionTap() -> Bool {
+    if eventTap != nil { return true }
 
     let mask = CGEventMask(1 << CGEventType.keyDown.rawValue)
     let callback: CGEventTapCallBack = { _, type, event, userInfo in
@@ -270,13 +293,17 @@ extension QuickTweakMenuPresenter {
       }
       let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
 
-      // Map keycodes to digits 1..4 on ANSI layout
+      // Map keycodes to digits 1..4 on ANSI layout and numeric keypad
       let digit: Int?
       switch keyCode {
       case 18: digit = 1  // kVK_ANSI_1
       case 19: digit = 2  // kVK_ANSI_2
       case 20: digit = 3  // kVK_ANSI_3
       case 21: digit = 4  // kVK_ANSI_4
+      case 83: digit = 1  // kVK_ANSI_Keypad1
+      case 84: digit = 2  // kVK_ANSI_Keypad2
+      case 85: digit = 3  // kVK_ANSI_Keypad3
+      case 86: digit = 4  // kVK_ANSI_Keypad4
       default: digit = nil
       }
 
@@ -305,10 +332,12 @@ extension QuickTweakMenuPresenter {
       eventTapRunLoopSource = source
       CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
       CGEvent.tapEnable(tap: tap, enable: true)
+      return true
     } else {
       #if DEBUG
         print("[QuickTweakMenuPresenter] Failed to create CGEvent tap for digit interception")
       #endif
+      return false
     }
   }
 
