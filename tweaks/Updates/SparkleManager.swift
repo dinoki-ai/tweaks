@@ -23,7 +23,7 @@ class SparkleManager: ObservableObject {
   private init() {
     updaterController = SPUStandardUpdaterController(
       startingUpdater: true,
-      updaterDelegate: nil,
+      updaterDelegate: self,
       userDriverDelegate: nil
     )
 
@@ -84,6 +84,13 @@ class SparkleManager: ObservableObject {
 
   deinit {
     NotificationCenter.default.removeObserver(self)
+  }
+}
+
+// MARK: - Sparkle Delegate
+extension SparkleManager: SPUUpdaterDelegate {
+  func feedURLString(for updater: SPUUpdater) -> String? {
+    return "https://dinoki-ai.github.io/tweaks/appcast.xml"
   }
 }
 
