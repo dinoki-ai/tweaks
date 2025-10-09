@@ -7,6 +7,7 @@
 
 import Sparkle
 import SwiftUI
+import AppKit
 
 // MARK: - AI Settings View and subviews
 
@@ -74,10 +75,6 @@ struct AISettingsView: View {
 
       // System Prompts
       VStack(alignment: .leading, spacing: 12) {
-        Label("Quick Actions (HUD Slots 1–4)", systemImage: "bolt.circle")
-          .font(.system(size: 14, weight: .semibold))
-          .foregroundColor(FuturisticTheme.text)
-
         QuickActionEditorView()
       }
       .padding()
@@ -165,7 +162,14 @@ struct AISettingsView: View {
           title: "About",
           icon: "info.circle",
           action: {
-            NSApp.orderFrontStandardAboutPanel(nil)
+            let handle = "@DinokiLabs"
+            let fullText = "Made by Dinoki Labs — Follow us on X: \(handle)"
+            let credits = NSMutableAttributedString(string: fullText)
+            if let swiftRange = fullText.range(of: handle) {
+              let nsRange = NSRange(swiftRange, in: fullText)
+              credits.addAttribute(.link, value: "https://x.com/dinokilabs", range: nsRange)
+            }
+            NSApp.orderFrontStandardAboutPanel(options: [.credits: credits])
           },
           style: .secondary
         )
