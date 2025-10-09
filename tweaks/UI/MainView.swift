@@ -10,10 +10,13 @@ import SwiftUI
 // MARK: - Main View and subviews
 
 struct MainView: View {
-  let recordedKeyCode: UInt32
-  let recordedModifiers: UInt32
+  @State var recordedKeyCode: UInt32
+  @State var recordedModifiers: UInt32
+  @State private var recordingShortcut: Bool = false
+  @State private var hotkeyRegistrationStatus: Bool? = nil
   @ObservedObject private var permissionManager = PermissionManager.shared
   @ObservedObject private var settingsManager = SettingsManager.shared
+  @ObservedObject private var feedbackManager = HotkeyFeedbackManager.shared
 
   var body: some View {
     VStack(spacing: 20) {
@@ -58,6 +61,14 @@ struct MainView: View {
       }
       .futuristicCard()
 
+      // Hotkey Configuration
+      HotkeyConfigurationCard(
+        recordingShortcut: $recordingShortcut,
+        recordedKeyCode: $recordedKeyCode,
+        recordedModifiers: $recordedModifiers,
+        registrationResult: $hotkeyRegistrationStatus
+      )
+
       // Permission Status
       if permissionManager.accessibilityStatus != .granted {
         PermissionCard()
@@ -66,6 +77,29 @@ struct MainView: View {
       // Quick Test
       if permissionManager.accessibilityStatus == .granted {
         TestSection()
+      }
+    }
+    .background(
+      RecordingView(isRecording: $recordingShortcut) { keyCode, modifiers in
+        recordedKeyCode = keyCode
+        recordedModifiers = modifiers
+        let success = HotkeyManager.shared.updateShortcut(
+          keyCode: keyCode, modifiers: modifiers)
+        hotkeyRegistrationStatus = success
+        // Auto-clear the status after a short delay
+        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+          hotkeyRegistrationStatus = nil
+        }
+        feedbackManager.hotkeyTriggered()
+      }
+    )
+    .onChange(of: recordingShortcut) { oldValue, isRecording in
+      if isRecording {
+        HotkeyManager.shared.suspendShortcut()
+      } else {
+        // Re-register current shortcut when recording stops (in case user cancelled)
+        _ = HotkeyManager.shared.registerShortcut(
+          keyCode: recordedKeyCode, modifiers: recordedModifiers)
       }
     }
   }
@@ -153,6 +187,80 @@ struct TestSection: View {
       }
     }
     .frame(maxWidth: .infinity)
+    .padding()
+    .glassEffect()
+  }
+}
+
+// MARK: - Hotkey Configuration Card
+
+struct HotkeyConfigurationCard: View {
+  @Binding var recordingShortcut: Bool
+  @Binding var recordedKeyCode: UInt32
+  @Binding var recordedModifiers: UInt32
+  @Binding var registrationResult: Bool?
+
+  private let actionControlWidth: CGFloat = 100
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 12) {
+      Label("Hotkey Settings", systemImage: "keyboard")
+        .font(.system(size: 14, weight: .semibold))
+        .foregroundColor(FuturisticTheme.text)
+
+      HStack {
+        Text("Global Shortcut")
+          .font(.system(size: 12))
+          .foregroundColor(FuturisticTheme.textSecondary)
+
+        Spacer()
+
+        if recordingShortcut {
+          FuturisticButton(
+            title: "Recording…",
+            icon: "keyboard",
+            action: {},
+            style: .primary
+          )
+          .allowsHitTesting(false)
+          .frame(width: actionControlWidth)
+        } else {
+          FuturisticButton(
+            title: "Change",
+            icon: "keyboard",
+            action: {
+              // Temporarily suspend current hotkey so it doesn't fire while capturing
+              HotkeyManager.shared.suspendShortcut()
+              recordingShortcut = true
+            },
+            style: .secondary
+          )
+          .frame(width: actionControlWidth)
+        }
+      }
+
+      if recordingShortcut {
+        HStack {
+          Image(systemName: "keyboard.fill")
+            .foregroundColor(FuturisticTheme.accent)
+            .font(.system(size: 12))
+          Text("Press your desired key combination...")
+            .font(.system(size: 11))
+            .foregroundColor(FuturisticTheme.accent)
+        }
+        .transition(.opacity.combined(with: .move(edge: .top)))
+      } else if let result = registrationResult {
+        HStack(spacing: 8) {
+          Image(systemName: result ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+            .foregroundColor(
+              result ? FuturisticTheme.accent : FuturisticTheme.accent.opacity(0.6))
+          Text(result ? "Hotkey updated" : "Failed to register hotkey")
+            .font(.system(size: 11))
+            .foregroundColor(FuturisticTheme.textSecondary)
+        }
+        .transition(.opacity)
+      }
+    }
     .padding()
     .glassEffect()
   }

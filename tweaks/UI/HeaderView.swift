@@ -74,7 +74,7 @@ struct HeaderView: View {
       // Tab Bar
       FuturisticSegmentedControl(
         selection: $selectedTab,
-        options: ["Overview", "AI Model", "Settings"]
+        options: ["Overview", "Settings"]
       )
       .padding(.horizontal, 20)
       .padding(.bottom, 16)

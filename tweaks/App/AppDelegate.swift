@@ -51,6 +51,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
+  @MainActor
   func pasteTweakedText() { TweakService.shared.pasteTweakedText() }
 
   private func postCmdV(tap: CGEventTapLocation, label: String) {}
@@ -61,5 +62,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
 
   // Temporarily unregister the current hotkey (used while recording a new shortcut)
+  @MainActor
   func suspendGlobalHotkey() { HotkeyManager.shared.suspendShortcut() }
 }
