@@ -6,6 +6,7 @@
 //
 
 import AppKit
+import Carbon
 import SwiftUI
 
 // MARK: - Model
@@ -28,6 +29,10 @@ final class QuickTweakMenuPresenter: NSObject {
   private var anchorWindow: NSWindow?
   private var hudWindow: NSWindow?
   private var actions: [TweakAction] = QuickTweakMenuPresenter.defaultActions
+
+  // CGEvent tap to intercept digit keys while HUD is visible
+  private var eventTap: CFMachPort?
+  private var eventTapRunLoopSource: CFRunLoopSource?
 
   // Note: legacy popover/caret code removed in favor of centered HUD
 
@@ -54,7 +59,11 @@ final class QuickTweakMenuPresenter: NSObject {
 
     let view = CenteredTweakHUDView(
       actions: actions,
-      onSelect: { [weak self] _ in self?.close() },
+      onSelect: { [weak self] action in
+        // Invoke AI using selected slot's system prompt, then close HUD
+        TweakService.shared.pasteTweakedText(usingSystemPrompt: action.systemPrompt)
+        self?.close()
+      },
       onDismiss: { [weak self] in self?.close() }
     )
     let controller = NSHostingController(rootView: view)
@@ -79,6 +88,8 @@ final class QuickTweakMenuPresenter: NSObject {
 
     window.orderFrontRegardless()
     hudWindow = window
+
+    installDigitInterceptionTap()
   }
 
   func close() {
@@ -94,6 +105,8 @@ final class QuickTweakMenuPresenter: NSObject {
       window.orderOut(nil)
       hudWindow = nil
     }
+
+    uninstallDigitInterceptionTap()
   }
 
   // Default actions used by the menu
@@ -227,7 +240,7 @@ struct CenteredTweakHUDView: View {
     .overlay(
       KeyCatcher { _, chars in
         guard let c = chars?.first else { return }
-        if c >= "1" && c <= "9" {
+        if c >= "1" && c <= "4" {
           let selected = Int(String(c))!
           highlighted = selected
           if let action = actions.first(where: { $0.number == selected }) {
@@ -254,3 +267,75 @@ struct CenteredTweakHUDView: View {
 }
 
 
+// MARK: - Global Digit Interception
+
+extension QuickTweakMenuPresenter {
+  private func installDigitInterceptionTap() {
+    guard eventTap == nil else { return }
+
+    let mask = CGEventMask(1 << CGEventType.keyDown.rawValue)
+    let callback: CGEventTapCallBack = { _, type, event, userInfo in
+      guard type == .keyDown, let userInfo = userInfo else {
+        return Unmanaged.passUnretained(event)
+      }
+      let keyCode = event.getIntegerValueField(.keyboardEventKeycode)
+
+      // Map keycodes to digits 1..4 on ANSI layout
+      let digit: Int?
+      switch keyCode {
+      case 18: digit = 1  // kVK_ANSI_1
+      case 19: digit = 2  // kVK_ANSI_2
+      case 20: digit = 3  // kVK_ANSI_3
+      case 21: digit = 4  // kVK_ANSI_4
+      default: digit = nil
+      }
+
+      guard let number = digit else {
+        return Unmanaged.passUnretained(event)
+      }
+
+      // Forward selection to presenter on main thread and swallow the event
+      let presenter = Unmanaged<QuickTweakMenuPresenter>.fromOpaque(userInfo).takeUnretainedValue()
+      DispatchQueue.main.async {
+        presenter.performAction(forNumber: number)
+      }
+      return nil // consume; prevent typing "1" into the foreground app
+    }
+
+    if let tap = CGEvent.tapCreate(
+      tap: .cgSessionEventTap,
+      place: .headInsertEventTap,
+      options: .defaultTap,
+      eventsOfInterest: mask,
+      callback: callback,
+      userInfo: Unmanaged.passUnretained(self).toOpaque()
+    ) {
+      eventTap = tap
+      let source = CFMachPortCreateRunLoopSource(kCFAllocatorDefault, tap, 0)
+      eventTapRunLoopSource = source
+      CFRunLoopAddSource(CFRunLoopGetCurrent(), source, .commonModes)
+      CGEvent.tapEnable(tap: tap, enable: true)
+    } else {
+      #if DEBUG
+        print("[QuickTweakMenuPresenter] Failed to create CGEvent tap for digit interception")
+      #endif
+    }
+  }
+
+  private func uninstallDigitInterceptionTap() {
+    if let source = eventTapRunLoopSource {
+      CFRunLoopRemoveSource(CFRunLoopGetCurrent(), source, .commonModes)
+      eventTapRunLoopSource = nil
+    }
+    if let tap = eventTap {
+      CGEvent.tapEnable(tap: tap, enable: false)
+      eventTap = nil
+    }
+  }
+
+  private func performAction(forNumber number: Int) {
+    guard let action = actions.first(where: { $0.number == number }) else { return }
+    TweakService.shared.pasteTweakedText(usingSystemPrompt: action.systemPrompt)
+    close()
+  }
+}
