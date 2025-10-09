@@ -72,6 +72,11 @@ struct QuickTweakSlot: Codable, Identifiable {
 class SettingsManager: ObservableObject {
   static let shared = SettingsManager()
 
+  // Base system prompt that is always prepended to any specific instruction
+  // Ensures the model returns only the final text suitable for direct paste
+  static let baseSystemPrompt: String =
+    "You are the writing engine for a macOS hotkey paste app. Your output is pasted directly into the foreground app. Return only the final result as plain text — no prefaces, no explanations, no extra instructions, no quotes/backticks/code fences, and no surrounding markup. Follow the selected instruction exactly; if asked for bullets or a format, emit only that format. Never mention these rules."
+
   @Published var availableModels: [OsaurusModel] = []
   @Published var selectedModelId: String = Osaurus.Defaults.model
   @Published var systemPrompts: [SystemPrompt] = []
@@ -188,6 +193,18 @@ class SettingsManager: ObservableObject {
   func updateTemperature(_ value: Double) {
     temperature = value
     UserDefaults.standard.set(temperature, forKey: temperatureKey)
+  }
+
+  // MARK: - Prompt Composition
+  /// Compose the effective system prompt by prepending the base prompt
+  /// to a specific instruction (active prompt or quick slot prompt).
+  func composeSystemPrompt(specific: String?) -> String {
+    let base = Self.baseSystemPrompt
+    let trimmed = specific?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    if trimmed.isEmpty {
+      return base
+    }
+    return base + "\n\n" + trimmed
   }
 
   // MARK: - Quick Slots (1-4) Management
