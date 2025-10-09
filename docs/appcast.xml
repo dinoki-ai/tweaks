@@ -3,14 +3,14 @@
   <channel>
     <title>Tweaks</title>
         <item>
-            <title>0.0.4</title>
-            <pubDate>Thu, 09 Oct 2025 12:51:10 +0000</pubDate>
+            <title>0.0.5</title>
+            <pubDate>Thu, 09 Oct 2025 13:57:18 +0000</pubDate>
             <sparkle:channel>release</sparkle:channel>
-            <sparkle:version>0.0.4</sparkle:version>
-            <sparkle:shortVersionString>0.0.4</sparkle:shortVersionString>
+            <sparkle:version>0.0.5</sparkle:version>
+            <sparkle:shortVersionString>0.0.5</sparkle:shortVersionString>
             <sparkle:minimumSystemVersion>14.0</sparkle:minimumSystemVersion>
             <sparkle:releaseNotesLink>https://dinoki-ai.github.io/tweaks/Tweaks-latest.html</sparkle:releaseNotesLink>
-            <enclosure url="https://github.com/dinoki-ai/tweaks/releases/download/0.0.4/Tweaks-0.0.4.dmg" length="2222750" type="application/octet-stream" sparkle:edSignature="OZHPrCmMzF9UBaCNyKXwwO/SCBCXb5O9CZdhhvuJwIxGY0ruhyYzHYSBeTxBV6hiQh/+xqIXY9PohoB6OFFbDg=="/>
+            <enclosure url="https://github.com/dinoki-ai/tweaks/releases/download/0.0.5/Tweaks-0.0.5.dmg" length="2223380" type="application/octet-stream" sparkle:edSignature="AzJew0zqu+wo8IrlOIMRN/mRsI0qHWHLs0KWrzzMnsYQGm49jpT6EE38Dcd+46kC13UEJifK901Z6UZJ3HAeDg=="/>
         </item>
   </channel>
 </rss>
