@@ -11,8 +11,6 @@ import SwiftUI
 
 // MARK: - Data Models
 
-// Moved Osaurus model types into `Osaurus.swift`
-
 struct SystemPrompt: Codable, Identifiable {
   let id: UUID
   var name: String
@@ -27,6 +25,45 @@ struct SystemPrompt: Codable, Identifiable {
   }
 }
 
+// Fixed quick actions (slots 1-4) for the HUD menu
+struct QuickTweakSlot: Codable, Identifiable {
+  let number: Int          // 1-4
+  var title: String
+  var subtitle: String
+  var systemPrompt: String
+  var isEnabled: Bool
+
+  var id: Int { number }
+
+  init(number: Int, title: String, subtitle: String, systemPrompt: String, isEnabled: Bool = true) {
+    self.number = number
+    self.title = title
+    self.subtitle = subtitle
+    self.systemPrompt = systemPrompt
+    self.isEnabled = isEnabled
+  }
+
+  private enum CodingKeys: String, CodingKey { case number, title, subtitle, systemPrompt, isEnabled }
+
+  init(from decoder: Decoder) throws {
+    let c = try decoder.container(keyedBy: CodingKeys.self)
+    number = try c.decode(Int.self, forKey: .number)
+    title = (try? c.decode(String.self, forKey: .title)) ?? ""
+    subtitle = (try? c.decode(String.self, forKey: .subtitle)) ?? ""
+    systemPrompt = (try? c.decode(String.self, forKey: .systemPrompt)) ?? ""
+    isEnabled = (try? c.decode(Bool.self, forKey: .isEnabled)) ?? true
+  }
+
+  func encode(to encoder: Encoder) throws {
+    var c = encoder.container(keyedBy: CodingKeys.self)
+    try c.encode(number, forKey: .number)
+    try c.encode(title, forKey: .title)
+    try c.encode(subtitle, forKey: .subtitle)
+    try c.encode(systemPrompt, forKey: .systemPrompt)
+    try c.encode(isEnabled, forKey: .isEnabled)
+  }
+}
+
 // MARK: - Settings Manager
 
 @MainActor
@@ -37,6 +74,7 @@ class SettingsManager: ObservableObject {
   @Published var selectedModelId: String = Osaurus.Defaults.model
   @Published var systemPrompts: [SystemPrompt] = []
   @Published var activePromptId: UUID?
+  @Published var quickSlots: [QuickTweakSlot] = []  // exactly 4 slots
   @Published var isLoadingModels = false
   @Published var modelsFetchError: String?
   @Published var temperature: Double = Osaurus.Defaults.temperature
@@ -45,6 +83,7 @@ class SettingsManager: ObservableObject {
   private let activePromptKey = "TweaksActivePrompt"
   private let selectedModelKey = "TweaksSelectedModel"
   private let temperatureKey = "TweaksTemperature"
+  private let quickSlotsKey = "TweaksQuickSlots"
 
   private init() {
     loadSettings()
@@ -59,6 +98,12 @@ class SettingsManager: ObservableObject {
       systemPrompts = [defaultPrompt]
       activePromptId = defaultPrompt.id
       savePrompts()
+    }
+
+    // Ensure we have exactly 4 quick slots
+    if quickSlots.count != 4 {
+      quickSlots = Self.defaultQuickSlots
+      saveQuickSlots()
     }
   }
 
@@ -143,6 +188,62 @@ class SettingsManager: ObservableObject {
     UserDefaults.standard.set(temperature, forKey: temperatureKey)
   }
 
+  // MARK: - Quick Slots (1-4) Management
+
+  static var defaultQuickSlots: [QuickTweakSlot] {
+    [
+      QuickTweakSlot(
+        number: 1,
+        title: "Rewrite for clarity",
+        subtitle: "Make it clear, concise, and natural",
+        systemPrompt:
+          "You are an assistant that rewrites text for clarity. Keep the author’s intent. Use plain language and reduce redundancy.",
+        isEnabled: true
+      ),
+      QuickTweakSlot(
+        number: 2,
+        title: "Summarize (bullets)",
+        subtitle: "3–5 bullets, key points only",
+        systemPrompt:
+          "Summarize the text in 3–5 concise bullet points. Capture only the key ideas and facts.",
+        isEnabled: true
+      ),
+      QuickTweakSlot(
+        number: 3,
+        title: "Shorten (~30%)",
+        subtitle: "Keep tone; cut fluff",
+        systemPrompt:
+          "Shorten the text by ~30% while preserving meaning, voice, and critical details.",
+        isEnabled: true
+      ),
+      QuickTweakSlot(
+        number: 4,
+        title: "Formalize",
+        subtitle: "Polite, professional tone",
+        systemPrompt:
+          "Rewrite the text in a polite, professional tone suitable for business email. Avoid sounding stiff or robotic.",
+        isEnabled: true
+      ),
+    ]
+  }
+
+  func updateQuickSlot(
+    number: Int,
+    title: String? = nil,
+    subtitle: String? = nil,
+    systemPrompt: String? = nil,
+    isEnabled: Bool? = nil
+  ) {
+    guard let idx = quickSlots.firstIndex(where: { $0.number == number }) else { return }
+    var updated = quickSlots[idx]
+    if let title { updated.title = title }
+    if let subtitle { updated.subtitle = subtitle }
+    if let systemPrompt { updated.systemPrompt = systemPrompt }
+    if let isEnabled { updated.isEnabled = isEnabled }
+    quickSlots[idx] = updated
+    saveQuickSlots()
+  }
+
   // MARK: - Persistence
 
   private func loadSettings() {
@@ -151,6 +252,19 @@ class SettingsManager: ObservableObject {
       let decoded = try? JSONDecoder().decode([SystemPrompt].self, from: data)
     {
       systemPrompts = decoded
+    }
+
+    // Load quick slots (1-4)
+    if let data = UserDefaults.standard.data(forKey: quickSlotsKey),
+      let decoded = try? JSONDecoder().decode([QuickTweakSlot].self, from: data)
+    {
+      // Sanitize to exactly 4 slots with numbers 1...4
+      let sanitized = decoded
+        .filter { (1...4).contains($0.number) }
+        .sorted { $0.number < $1.number }
+      if sanitized.count == 4 {
+        quickSlots = sanitized
+      }
     }
 
     // Load active prompt
@@ -178,6 +292,16 @@ class SettingsManager: ObservableObject {
 
     if let activeId = activePromptId {
       UserDefaults.standard.set(activeId.uuidString, forKey: activePromptKey)
+    }
+  }
+
+  private func saveQuickSlots() {
+    // Keep sorted and limited to 1...4 before saving
+    let sorted = quickSlots
+      .filter { (1...4).contains($0.number) }
+      .sorted { $0.number < $1.number }
+    if let encoded = try? JSONEncoder().encode(sorted) {
+      UserDefaults.standard.set(encoded, forKey: quickSlotsKey)
     }
   }
 }

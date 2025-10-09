@@ -49,6 +49,9 @@ final class QuickTweakMenuPresenter: NSObject {
     window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
     window.isReleasedWhenClosed = false
 
+    // Refresh actions from settings each time HUD is shown
+    actions = Self.actionsFromSettings()
+
     let view = CenteredTweakHUDView(
       actions: actions,
       onSelect: { [weak self] _ in self?.close() },
@@ -125,6 +128,23 @@ final class QuickTweakMenuPresenter: NSObject {
           "Rewrite the text in a polite, professional tone suitable for business email. Avoid sounding stiff or robotic."
       ),
     ]
+  }
+
+  // Build actions from SettingsManager quick slots, fall back to defaults if missing
+  private static func actionsFromSettings() -> [TweakAction] {
+    let slots = SettingsManager.shared.quickSlots
+    let enabled = slots.filter { $0.isEnabled }
+    if enabled.isEmpty {
+      return defaultActions
+    }
+    return enabled.sorted { $0.number < $1.number }.map {
+      TweakAction(
+        number: $0.number,
+        title: $0.title,
+        subtitle: $0.subtitle,
+        systemPrompt: $0.systemPrompt
+      )
+    }
   }
 }
 

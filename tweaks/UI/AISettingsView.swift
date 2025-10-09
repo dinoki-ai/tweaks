@@ -71,6 +71,17 @@ struct AISettingsView: View {
       }
 
       // System Prompts
+      VStack(alignment: .leading, spacing: 12) {
+        Label("Quick Actions (HUD Slots 1–4)", systemImage: "bolt.circle")
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundColor(FuturisticTheme.text)
+
+        QuickActionEditorView()
+      }
+      .padding()
+      .glassEffect()
+
+      // System Prompts (active prompt used by default tweak)
       PromptEditorView()
         .padding()
         .glassEffect()
