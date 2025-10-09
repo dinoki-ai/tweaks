@@ -5,12 +5,14 @@
 //  AI model selection, prompts, and temperature
 //
 
+import Sparkle
 import SwiftUI
 
 // MARK: - AI Settings View and subviews
 
 struct AISettingsView: View {
   @ObservedObject private var settingsManager = SettingsManager.shared
+  @StateObject private var sparkleManager = SparkleManager.shared
   @State private var showingPromptEditor = false
 
   var body: some View {
@@ -71,9 +73,15 @@ struct AISettingsView: View {
       }
 
       // System Prompts
-      PromptEditorView()
-        .padding()
-        .glassEffect()
+      VStack(alignment: .leading, spacing: 12) {
+        Label("Quick Actions (HUD Slots 1–4)", systemImage: "bolt.circle")
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundColor(FuturisticTheme.text)
+
+        QuickActionEditorView()
+      }
+      .padding()
+      .glassEffect()
 
       // Temperature Control
       VStack(alignment: .leading, spacing: 12) {
@@ -108,6 +116,67 @@ struct AISettingsView: View {
       }
       .padding()
       .glassEffect()
+
+      // Updates Section
+      VStack(alignment: .leading, spacing: 12) {
+        Label("Updates", systemImage: "arrow.triangle.2.circlepath")
+          .font(.system(size: 14, weight: .semibold))
+          .foregroundColor(FuturisticTheme.text)
+
+        HStack {
+          Text("Automatic Updates")
+            .font(.system(size: 12))
+            .foregroundColor(FuturisticTheme.textSecondary)
+
+          Spacer()
+
+          Toggle("", isOn: $sparkleManager.automaticUpdateChecks)
+            .toggleStyle(SwitchToggleStyle())
+            .labelsHidden()
+            .onChange(of: sparkleManager.automaticUpdateChecks) { _, newValue in
+              sparkleManager.setAutomaticUpdateChecks(newValue)
+            }
+        }
+
+        HStack {
+          Text(sparkleManager.updateStatusString)
+            .font(.system(size: 11))
+            .foregroundColor(FuturisticTheme.textTertiary)
+
+          Spacer()
+
+          FuturisticButton(
+            title: sparkleManager.isCheckingForUpdates ? "Checking..." : "Check Now",
+            icon: "arrow.triangle.2.circlepath",
+            action: {
+              sparkleManager.checkForUpdates()
+            },
+            style: .secondary
+          )
+          .disabled(sparkleManager.isCheckingForUpdates || !sparkleManager.canCheckForUpdates)
+        }
+      }
+      .padding()
+      .glassEffect()
+
+      // App Actions
+      HStack(spacing: 12) {
+        FuturisticButton(
+          title: "About",
+          icon: "info.circle",
+          action: {
+            NSApp.orderFrontStandardAboutPanel(nil)
+          },
+          style: .secondary
+        )
+
+        FuturisticButton(
+          title: "Quit Tweaks",
+          icon: "power",
+          action: { NSApp.terminate(nil) },
+          style: .secondary
+        )
+      }
     }
   }
 }

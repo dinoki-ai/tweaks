@@ -16,9 +16,11 @@ class HotkeyFeedbackManager: ObservableObject {
   @Published var lastHotkeyPressed: Date?
   @Published var hotkeyPressCount: Int = 0
   @Published var showingFeedback: Bool = false
+  @Published var isLoading: Bool = false
 
   private var feedbackWindow: NSWindow?
   private var hideTimer: Timer?
+  private var activeLoadingCount: Int = 0
 
   func hotkeyTriggered() {
     lastHotkeyPressed = Date()
@@ -44,6 +46,32 @@ class HotkeyFeedbackManager: ObservableObject {
       repeats: false)
     RunLoop.main.add(timer, forMode: .common)
     hideTimer = timer
+  }
+
+  func beginLoading() {
+    // Ensure visual feedback is visible while loading
+    activeLoadingCount += 1
+    if !showingFeedback {
+      showVisualFeedback()
+      showingFeedback = true
+    }
+    hideTimer?.invalidate()
+    isLoading = true
+  }
+
+  func endLoading() {
+    guard activeLoadingCount > 0 else { return }
+    activeLoadingCount -= 1
+    if activeLoadingCount == 0 {
+      isLoading = false
+      // Schedule a gentle hide shortly after completion
+      hideTimer?.invalidate()
+      let timer = Timer(
+        timeInterval: 0.9, target: self, selector: #selector(handleHideTimer(_:)), userInfo: nil,
+        repeats: false)
+      RunLoop.main.add(timer, forMode: .common)
+      hideTimer = timer
+    }
   }
 
   private func showVisualFeedback() {
@@ -117,18 +145,25 @@ extension HotkeyFeedbackManager {
 }
 
 struct HotkeyFeedbackView: View {
+  @ObservedObject private var feedback = HotkeyFeedbackManager.shared
   var body: some View {
     HStack(spacing: 8) {
-      Image(systemName: "keyboard")
-        .font(.title2)
-        .foregroundColor(.white)
+      if feedback.isLoading {
+        ProgressView()
+          .progressViewStyle(.circular)
+          .tint(.white)
+      } else {
+        Image(systemName: "keyboard")
+          .font(.title2)
+          .foregroundColor(.white)
+      }
 
       VStack(alignment: .leading, spacing: 2) {
         Text("Hotkey Triggered!")
           .font(.system(.body, weight: .medium))
           .foregroundColor(.white)
 
-        Text("Tweaking via Osaurus...")
+        Text(feedback.isLoading ? "Tweaking via Osaurus..." : "Ready")
           .font(.caption)
           .foregroundColor(.white.opacity(0.8))
       }
@@ -142,79 +177,4 @@ struct HotkeyFeedbackView: View {
   }
 }
 
-// Test button for the main UI
-struct HotkeyTestView: View {
-  @ObservedObject var feedback = HotkeyFeedbackManager.shared
-  @State private var pulseAnimation = false
-
-  private var timeSinceLastPress: String {
-    guard let lastPressed = feedback.lastHotkeyPressed else {
-      return "Never"
-    }
-
-    let interval = Date().timeIntervalSince(lastPressed)
-    if interval < 60 {
-      return "\(Int(interval))s ago"
-    } else if interval < 3600 {
-      return "\(Int(interval / 60))m ago"
-    } else {
-      return ">1h ago"
-    }
-  }
-
-  var body: some View {
-    VStack(alignment: .leading, spacing: 8) {
-      HStack {
-        Image(systemName: "keyboard")
-          .foregroundColor(.secondary)
-        Text("Hotkey Testing")
-          .font(.subheadline)
-          .fontWeight(.medium)
-      }
-
-      HStack {
-        VStack(alignment: .leading, spacing: 4) {
-          Text("Press Count: \(feedback.hotkeyPressCount)")
-            .font(.caption)
-            .foregroundColor(.secondary)
-
-          Text("Last Press: \(timeSinceLastPress)")
-            .font(.caption)
-            .foregroundColor(.secondary)
-        }
-
-        Spacer()
-
-        // Visual indicator
-        Circle()
-          .fill(feedback.showingFeedback ? Color.green : Color.gray.opacity(0.3))
-          .frame(width: 12, height: 12)
-          .scaleEffect(pulseAnimation ? 1.2 : 1.0)
-          .animation(.easeInOut(duration: 0.3), value: pulseAnimation)
-          .onChange(of: feedback.showingFeedback) { old, newValue in
-            if newValue {
-              pulseAnimation = true
-              DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                pulseAnimation = false
-              }
-            }
-          }
-      }
-
-      Button(action: {
-        TweakService.shared.pasteTweakedText()
-        feedback.hotkeyTriggered()
-      }) {
-        HStack {
-          Image(systemName: "wand.and.stars")
-          Text("Test Hotkey Now")
-        }
-        .frame(maxWidth: .infinity)
-      }
-      .buttonStyle(.bordered)
-    }
-    .padding()
-    .background(Color.gray.opacity(0.05))
-    .cornerRadius(8)
-  }
-}
+// (Removed unused HotkeyTestView)

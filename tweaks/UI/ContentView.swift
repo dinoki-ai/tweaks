@@ -12,14 +12,10 @@ import SwiftUI
 struct ContentView: View {
   @StateObject private var settingsManager = SettingsManager.shared
   @ObservedObject private var permissionManager = PermissionManager.shared
-  @ObservedObject private var feedbackManager = HotkeyFeedbackManager.shared
 
   @State private var selectedTab = 0
-  @State private var recordingShortcut: Bool = false
   @State private var recordedKeyCode: UInt32 = UInt32(kVK_ANSI_T)
   @State private var recordedModifiers: UInt32 = UInt32(controlKey)
-  @State private var showingPromptEditor = false
-  @State private var hotkeyRegistrationStatus: Bool? = nil
 
   private func loadSavedShortcut() {
     let defaults = UserDefaults.standard
@@ -55,13 +51,6 @@ struct ContentView: View {
               )
             case 1:
               AISettingsView()
-            case 2:
-              SystemSettingsView(
-                recordingShortcut: $recordingShortcut,
-                recordedKeyCode: $recordedKeyCode,
-                recordedModifiers: $recordedModifiers,
-                registrationResult: $hotkeyRegistrationStatus
-              )
             default:
               EmptyView()
             }
@@ -76,29 +65,6 @@ struct ContentView: View {
       loadSavedShortcut()
       Task {
         await settingsManager.fetchAvailableModels()
-      }
-    }
-    .background(
-      RecordingView(isRecording: $recordingShortcut) { keyCode, modifiers in
-        recordedKeyCode = keyCode
-        recordedModifiers = modifiers
-        let success = HotkeyManager.shared.updateShortcut(
-          keyCode: keyCode, modifiers: modifiers)
-        hotkeyRegistrationStatus = success
-        // Auto-clear the status after a short delay
-        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-          hotkeyRegistrationStatus = nil
-        }
-        feedbackManager.hotkeyTriggered()
-      }
-    )
-    .onChange(of: recordingShortcut) { oldValue, isRecording in
-      if isRecording {
-        HotkeyManager.shared.suspendShortcut()
-      } else {
-        // Re-register current shortcut when recording stops (in case user cancelled)
-        _ = HotkeyManager.shared.registerShortcut(
-          keyCode: recordedKeyCode, modifiers: recordedModifiers)
       }
     }
   }

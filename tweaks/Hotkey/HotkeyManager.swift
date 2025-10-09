@@ -41,7 +41,7 @@ final class HotkeyManager {
         if status == noErr && hotKeyID.id == 1 {
           DispatchQueue.main.async {
             HotkeyFeedbackManager.shared.hotkeyTriggered()
-            TweakService.shared.pasteTweakedText()
+            QuickTweakMenuPresenter.shared.showCenteredHUD()
           }
         }
         return noErr
