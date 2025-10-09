@@ -33,7 +33,8 @@ final class TweakService {
     // Read settings on MainActor (this method is @MainActor)
     let settings = SettingsManager.shared
     let model = settings.selectedModelId
-    let systemPrompt = settings.activePrompt?.content ?? Osaurus.Defaults.systemPrompt
+    let systemPrompt = settings.composeSystemPrompt(
+      specific: settings.activePrompt?.content ?? Osaurus.Defaults.systemPrompt)
     let temperature = settings.temperature
 
     Task {
@@ -75,7 +76,7 @@ final class TweakService {
         await self.performPasteFlow(
           originalContent: fallback,
           model: settings.selectedModelId,
-          systemPrompt: systemPrompt,
+          systemPrompt: settings.composeSystemPrompt(specific: systemPrompt),
           temperature: settings.temperature
         )
       }
@@ -86,12 +87,13 @@ final class TweakService {
     let settings = SettingsManager.shared
     let model = settings.selectedModelId
     let temperature = settings.temperature
+    let composedPrompt = settings.composeSystemPrompt(specific: systemPrompt)
 
     Task {
       await self.performPasteFlow(
         originalContent: originalContent,
         model: model,
-        systemPrompt: systemPrompt,
+        systemPrompt: composedPrompt,
         temperature: temperature
       )
     }
