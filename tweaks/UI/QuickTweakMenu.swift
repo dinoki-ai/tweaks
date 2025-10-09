@@ -162,28 +162,28 @@ final class QuickTweakMenuPresenter: NSObject {
         title: "Rewrite for clarity",
         subtitle: "Make it clear, concise, and natural",
         systemPrompt:
-          "You are an assistant that rewrites text for clarity. Keep the author’s intent. Use plain language and reduce redundancy."
+          "Rewrite the provided text to be clear, concise, and natural. Preserve meaning and voice. Reduce redundancy. Output only the rewritten text."
       ),
       TweakAction(
         number: 2,
         title: "Summarize (bullets)",
         subtitle: "3–5 bullets, key points only",
         systemPrompt:
-          "Summarize the text in 3–5 concise bullet points. Capture only the key ideas and facts."
+          "Summarize the text in 3–5 concise bullet points. Capture only the key ideas and facts. Output only the bullets."
       ),
       TweakAction(
         number: 3,
         title: "Shorten (~30%)",
         subtitle: "Keep tone; cut fluff",
         systemPrompt:
-          "Shorten the text by ~30% while preserving meaning, voice, and critical details."
+          "Shorten the text by about 30% while preserving meaning, voice, and key details. Output only the shortened text."
       ),
       TweakAction(
         number: 4,
         title: "Formalize",
         subtitle: "Polite, professional tone",
         systemPrompt:
-          "Rewrite the text in a polite, professional tone suitable for business email. Avoid sounding stiff or robotic."
+          "Rewrite the text in a polite, professional tone suitable for a business email. Avoid stiffness or robotic phrasing. Output only the rewritten text."
       ),
     ]
   }

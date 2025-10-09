@@ -9,18 +9,54 @@ import SwiftUI
 
 struct QuickActionEditorView: View {
   @ObservedObject private var settings = SettingsManager.shared
+  @State private var isHoveringReset = false
 
   var body: some View {
     VStack(spacing: 0) {
       // Header
-      VStack(alignment: .leading, spacing: 8) {
-        Label("Quick Actions", systemImage: "rectangle.grid.2x2")
-          .font(.system(size: 14, weight: .semibold))
-          .foregroundColor(FuturisticTheme.text)
+      HStack(alignment: .top) {
+        VStack(alignment: .leading, spacing: 8) {
+          Label("Quick Actions", systemImage: "rectangle.grid.2x2")
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(FuturisticTheme.text)
 
-        Text("Configure up to 4 quick actions accessible from the menu")
-          .font(.system(size: 11))
-          .foregroundColor(FuturisticTheme.textSecondary)
+          Text("Configure up to 4 quick actions accessible from the menu")
+            .font(.system(size: 11))
+            .foregroundColor(FuturisticTheme.textSecondary)
+        }
+
+        Spacer()
+
+        Button(action: {
+          settings.resetQuickSlotsToDefaults()
+        }) {
+          HStack(spacing: 6) {
+            Image(systemName: "arrow.counterclockwise")
+              .font(.system(size: 11, weight: .medium))
+            Text("Reset All")
+              .font(.system(size: 11, weight: .medium))
+          }
+          .foregroundColor(isHoveringReset ? FuturisticTheme.accent : FuturisticTheme.textSecondary)
+          .padding(.horizontal, 12)
+          .padding(.vertical, 6)
+          .background(
+            RoundedRectangle(cornerRadius: FuturisticTheme.smallCornerRadius)
+              .fill(isHoveringReset ? FuturisticTheme.accent.opacity(0.1) : FuturisticTheme.surface)
+          )
+          .overlay(
+            RoundedRectangle(cornerRadius: FuturisticTheme.smallCornerRadius)
+              .stroke(
+                isHoveringReset
+                  ? FuturisticTheme.accent.opacity(0.4) : FuturisticTheme.accent.opacity(0.2),
+                lineWidth: 1)
+          )
+        }
+        .buttonStyle(PlainButtonStyle())
+        .onHover { hovering in
+          withAnimation(.easeInOut(duration: 0.15)) {
+            isHoveringReset = hovering
+          }
+        }
       }
       .frame(maxWidth: .infinity, alignment: .leading)
       .padding(.bottom, 16)
@@ -228,6 +264,18 @@ private struct QuickActionSlotCard: View {
       if localTitle.isEmpty && localSubtitle.isEmpty && localPrompt.isEmpty {
         isExpanded = true
       }
+    }
+    .onChange(of: slot.title) { _, newTitle in
+      localTitle = newTitle
+    }
+    .onChange(of: slot.subtitle) { _, newSubtitle in
+      localSubtitle = newSubtitle
+    }
+    .onChange(of: slot.systemPrompt) { _, newPrompt in
+      localPrompt = newPrompt
+    }
+    .onChange(of: slot.isEnabled) { _, newEnabled in
+      isEnabled = newEnabled
     }
   }
 }
