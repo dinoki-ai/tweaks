@@ -133,7 +133,10 @@ class SettingsManager: ObservableObject {
         }
       }
     } catch {
-      modelsFetchError = "Failed to fetch models: \(error.localizedDescription)"
+      let osaurusMessage =
+        "Osaurus is required and must be running. Download it free and open source from osaurus.ai."
+      modelsFetchError =
+        "Failed to fetch models: \(error.localizedDescription)\n\n\(osaurusMessage)"
       print("[SettingsManager] Error fetching models: \(error)")
     }
 
