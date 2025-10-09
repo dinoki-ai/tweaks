@@ -91,7 +91,7 @@ class HotkeyFeedbackManager: ObservableObject {
         window.isReleasedWhenClosed = false
         window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
 
-        let controller = NSHostingController(rootView: HotkeyFeedbackView().fixedSize())
+        let controller = NSHostingController(rootView: HotkeyFeedbackView())
         window.contentViewController = controller
 
         // Lock the content size to avoid NSHostingView resizing the window during layout

@@ -372,7 +372,7 @@ extension Osaurus {
   enum Defaults {
     static let model: String = "llama-3.2-3b-instruct-4bit"
     static let systemPrompt: String =
-      "You are Osaurus Tweak. Improve the user's copied text for clarity and tone. Preserve meaning and formatting. Output only the revised text without any preface."
+      "Improve the provided text for clarity and tone. Preserve meaning and formatting. Output only the revised text."
     static let temperature: Double = 0.3
   }
 
