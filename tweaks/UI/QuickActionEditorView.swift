@@ -29,14 +29,17 @@ private struct QuickActionSlotRow: View {
   var body: some View {
     VStack(alignment: .leading, spacing: 10) {
       HStack(spacing: 10) {
-        Toggle("", isOn: Binding(
-          get: { isEnabled },
-          set: { newValue in
-            isEnabled = newValue
-            SettingsManager.shared.updateQuickSlot(
-              number: slot.number, isEnabled: newValue)
-          }
-        ))
+        Toggle(
+          "",
+          isOn: Binding(
+            get: { isEnabled },
+            set: { newValue in
+              isEnabled = newValue
+              SettingsManager.shared.updateQuickSlot(
+                number: slot.number, isEnabled: newValue)
+            }
+          )
+        )
         .toggleStyle(SwitchToggleStyle())
         .labelsHidden()
 
@@ -45,37 +48,43 @@ private struct QuickActionSlotRow: View {
           .foregroundColor(FuturisticTheme.textSecondary)
           .frame(width: 22, alignment: .leading)
 
-        FuturisticTextField(placeholder: "Title", text: Binding(
-          get: { localTitle },
-          set: { newValue in
-            localTitle = newValue
-            SettingsManager.shared.updateQuickSlot(
-              number: slot.number, title: newValue)
-          }
-        ))
+        FuturisticTextField(
+          placeholder: "Title",
+          text: Binding(
+            get: { localTitle },
+            set: { newValue in
+              localTitle = newValue
+              SettingsManager.shared.updateQuickSlot(
+                number: slot.number, title: newValue)
+            }
+          ))
 
-        FuturisticTextField(placeholder: "Subtitle", text: Binding(
-          get: { localSubtitle },
-          set: { newValue in
-            localSubtitle = newValue
-            SettingsManager.shared.updateQuickSlot(
-              number: slot.number, subtitle: newValue)
-          }
-        ))
+        FuturisticTextField(
+          placeholder: "Subtitle",
+          text: Binding(
+            get: { localSubtitle },
+            set: { newValue in
+              localSubtitle = newValue
+              SettingsManager.shared.updateQuickSlot(
+                number: slot.number, subtitle: newValue)
+            }
+          ))
       }
 
       VStack(alignment: .leading, spacing: 6) {
         Text("System Prompt")
           .font(.system(size: 11))
           .foregroundColor(FuturisticTheme.textTertiary)
-        TextEditor(text: Binding(
-          get: { localPrompt },
-          set: { newValue in
-            localPrompt = newValue
-            SettingsManager.shared.updateQuickSlot(
-              number: slot.number, systemPrompt: newValue)
-          }
-        ))
+        TextEditor(
+          text: Binding(
+            get: { localPrompt },
+            set: { newValue in
+              localPrompt = newValue
+              SettingsManager.shared.updateQuickSlot(
+                number: slot.number, systemPrompt: newValue)
+            }
+          )
+        )
         .font(.system(size: 12))
         .foregroundColor(FuturisticTheme.text)
         .scrollContentBackground(.hidden)
@@ -106,5 +115,3 @@ private struct QuickActionSlotRow: View {
     }
   }
 }
-
-

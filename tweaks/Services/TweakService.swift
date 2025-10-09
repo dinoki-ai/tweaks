@@ -65,7 +65,7 @@ final class TweakService {
 
     // Attempt to copy current selection (Cmd+C), then read fresh clipboard
     Self.postCmdC(tap: .cgSessionEventTap)
-    usleep(25_000) // small delay to allow clipboard to update
+    usleep(25_000)  // small delay to allow clipboard to update
     guard let originalContent = pasteboard.string(forType: .string), !originalContent.isEmpty else {
       // Fallback to previous clipboard content if selection copy failed
       guard let fallback = originalClipboard, !fallback.isEmpty else { return }

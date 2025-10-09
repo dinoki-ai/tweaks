@@ -27,7 +27,7 @@ struct SystemPrompt: Codable, Identifiable {
 
 // Fixed quick actions (slots 1-4) for the HUD menu
 struct QuickTweakSlot: Codable, Identifiable {
-  let number: Int          // 1-4
+  let number: Int  // 1-4
   var title: String
   var subtitle: String
   var systemPrompt: String
@@ -43,7 +43,9 @@ struct QuickTweakSlot: Codable, Identifiable {
     self.isEnabled = isEnabled
   }
 
-  private enum CodingKeys: String, CodingKey { case number, title, subtitle, systemPrompt, isEnabled }
+  private enum CodingKeys: String, CodingKey {
+    case number, title, subtitle, systemPrompt, isEnabled
+  }
 
   init(from decoder: Decoder) throws {
     let c = try decoder.container(keyedBy: CodingKeys.self)
@@ -259,7 +261,8 @@ class SettingsManager: ObservableObject {
       let decoded = try? JSONDecoder().decode([QuickTweakSlot].self, from: data)
     {
       // Sanitize to exactly 4 slots with numbers 1...4
-      let sanitized = decoded
+      let sanitized =
+        decoded
         .filter { (1...4).contains($0.number) }
         .sorted { $0.number < $1.number }
       if sanitized.count == 4 {
@@ -297,7 +300,8 @@ class SettingsManager: ObservableObject {
 
   private func saveQuickSlots() {
     // Keep sorted and limited to 1...4 before saving
-    let sorted = quickSlots
+    let sorted =
+      quickSlots
       .filter { (1...4).contains($0.number) }
       .sorted { $0.number < $1.number }
     if let encoded = try? JSONEncoder().encode(sorted) {

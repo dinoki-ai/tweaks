@@ -75,7 +75,7 @@ final class QuickTweakMenuPresenter: NSObject {
     // Position slightly above vertical center (~25% of the way toward the top)
     // y = centerY + 0.25 * (topMargin - centerY)
     let centerY = screenFrame.midY - targetSize.height / 2
-    let topMargin = screenFrame.maxY - targetSize.height - 80 // keep safe margin from very top
+    let topMargin = screenFrame.maxY - targetSize.height - 80  // keep safe margin from very top
     let liftedY = centerY + 0.25 * (topMargin - centerY)
     let origin = NSPoint(
       x: screenFrame.midX - targetSize.width / 2,
@@ -207,7 +207,9 @@ struct CenteredTweakHUDView: View {
           .padding(.vertical, 12)
           .background(
             RoundedRectangle(cornerRadius: 10)
-              .fill(highlighted == action.number ? Color.white.opacity(0.16) : Color.white.opacity(0.08))
+              .fill(
+                highlighted == action.number ? Color.white.opacity(0.16) : Color.white.opacity(0.08)
+              )
           )
         }
         .buttonStyle(.plain)
@@ -255,7 +257,6 @@ struct CenteredTweakHUDView: View {
   }
 }
 
-
 // MARK: - Global Digit Interception
 
 extension QuickTweakMenuPresenter {
@@ -288,7 +289,7 @@ extension QuickTweakMenuPresenter {
       DispatchQueue.main.async {
         presenter.performAction(forNumber: number)
       }
-      return nil // consume; prevent typing "1" into the foreground app
+      return nil  // consume; prevent typing "1" into the foreground app
     }
 
     if let tap = CGEvent.tapCreate(
