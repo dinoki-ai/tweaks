@@ -15,7 +15,7 @@ struct ContentView: View {
 
   @State private var selectedTab = 0
   @State private var recordedKeyCode: UInt32 = UInt32(kVK_ANSI_T)
-  @State private var recordedModifiers: UInt32 = UInt32(controlKey)
+  @State private var recordedModifiers: UInt32 = UInt32(controlKey | optionKey)
 
   private func loadSavedShortcut() {
     let defaults = UserDefaults.standard

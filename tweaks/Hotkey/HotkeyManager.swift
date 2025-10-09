@@ -56,13 +56,16 @@ final class HotkeyManager {
     }
     let signature: OSType = 0x5457_4B53  // 'TWKS'
     let hotKeyID = EventHotKeyID(signature: signature, id: 1)
-    let status = RegisterEventHotKey(
+    // First try: register on application target
+    var status = RegisterEventHotKey(
       keyCode, modifiers, hotKeyID, GetApplicationEventTarget(), 0, &hotKeyRef)
-    if status != noErr {
-      print("RegisterEventHotKey failed: \(status)")
-      return false
-    }
-    return true
+    if status == noErr { return true }
+    // Fallback: register on event dispatcher target (more resilient in accessory apps)
+    status = RegisterEventHotKey(
+      keyCode, modifiers, hotKeyID, GetEventDispatcherTarget(), 0, &hotKeyRef)
+    if status == noErr { return true }
+    print("RegisterEventHotKey failed on both targets: \(status)")
+    return false
   }
 
   @discardableResult
@@ -74,7 +77,8 @@ final class HotkeyManager {
   }
 
   func registerSavedShortcutOrDefault(
-    defaultKeyCode: UInt32 = UInt32(kVK_ANSI_T), defaultModifiers: UInt32 = UInt32(controlKey)
+    defaultKeyCode: UInt32 = UInt32(kVK_ANSI_T),
+    defaultModifiers: UInt32 = UInt32(controlKey | optionKey)
   ) {
     let defaults = UserDefaults.standard
     let keyCode =
@@ -83,7 +87,13 @@ final class HotkeyManager {
     let modifiers =
       defaults.object(forKey: hotkeyModifiersDefaultsKey) != nil
       ? UInt32(defaults.integer(forKey: hotkeyModifiersDefaultsKey)) : defaultModifiers
-    _ = registerShortcut(keyCode: keyCode, modifiers: modifiers)
+    let ok = registerShortcut(keyCode: keyCode, modifiers: modifiers)
+    if !ok {
+      // Retry once shortly after app startup (helps with early runloop timing)
+      DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
+        _ = self?.registerShortcut(keyCode: keyCode, modifiers: modifiers)
+      }
+    }
   }
 
   func suspendShortcut() {
