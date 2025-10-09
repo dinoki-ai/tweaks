@@ -5,9 +5,9 @@
 //  AI model selection, prompts, and temperature
 //
 
+import AppKit
 import Sparkle
 import SwiftUI
-import AppKit
 
 // MARK: - AI Settings View and subviews
 

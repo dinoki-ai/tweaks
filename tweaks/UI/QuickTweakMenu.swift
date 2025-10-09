@@ -93,7 +93,11 @@ final class QuickTweakMenuPresenter: NSObject {
     previousFrontApp = NSWorkspace.shared.frontmostApplication
     let tapInstalled = installDigitInterceptionTap()
     if !tapInstalled {
-      NSApp.activate(ignoringOtherApps: true)
+      if #available(macOS 14.0, *) {
+        NSApp.activate()
+      } else {
+        NSApp.activate(ignoringOtherApps: true)
+      }
       window.makeKeyAndOrderFront(nil)
       activatedForKeyCapture = true
     } else {
@@ -111,7 +115,7 @@ final class QuickTweakMenuPresenter: NSObject {
 
     // Restore previous front app focus if we had to activate for key capture
     if activatedForKeyCapture {
-      previousFrontApp?.activate(options: [.activateIgnoringOtherApps])
+      previousFrontApp?.activate(options: [])
     }
     previousFrontApp = nil
     activatedForKeyCapture = false
