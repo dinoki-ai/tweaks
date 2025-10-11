@@ -111,7 +111,10 @@ final class TweakService {
       let client = try Osaurus.make()
 
       let stream = client.tweakStream(
-        text: originalContent, model: model, systemPrompt: systemPrompt, temperature: temperature)
+        text: originalContent,
+        model: model,
+        systemPrompt: systemPrompt,
+        temperature: temperature)
 
       var deltaBuffer = ""
       var receivedAny = false
@@ -144,7 +147,10 @@ final class TweakService {
 
       if !receivedAny {
         let tweakedText = try await client.tweak(
-          text: originalContent, model: model, systemPrompt: systemPrompt, temperature: temperature)
+          text: originalContent,
+          model: model,
+          systemPrompt: systemPrompt,
+          temperature: temperature)
         DispatchQueue.main.async {
           pasteboard.clearContents()
           _ = pasteboard.setString(tweakedText, forType: .string)
