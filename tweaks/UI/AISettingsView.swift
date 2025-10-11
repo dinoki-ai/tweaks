@@ -24,9 +24,25 @@ struct AISettingsView: View {
 
       // Model Selection
       VStack(alignment: .leading, spacing: 12) {
-        Label("AI Model", systemImage: "cpu")
-          .font(.system(size: 14, weight: .semibold))
-          .foregroundColor(FuturisticTheme.text)
+        HStack {
+          Label("AI Model", systemImage: "cpu")
+            .font(.system(size: 14, weight: .semibold))
+            .foregroundColor(FuturisticTheme.text)
+
+          Spacer()
+
+          FuturisticButton(
+            title: settingsManager.isLoadingModels ? "Refreshing..." : "Refresh",
+            icon: "arrow.clockwise",
+            action: {
+              Task {
+                await settingsManager.fetchAvailableModels()
+              }
+            },
+            style: .secondary
+          )
+          .disabled(settingsManager.isLoadingModels)
+        }
 
         if settingsManager.isLoadingModels {
           HStack {
