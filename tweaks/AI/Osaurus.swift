@@ -288,12 +288,16 @@ final class Osaurus {
       let client: Osaurus
       init(client: Osaurus) { self.client = client }
 
-      func create(model: String, messages: [OsaurusChatMessage], temperature: Double? = nil)
-        async throws -> OsaurusChatCompletionResponse
-      {
+      func create(
+        model: String,
+        messages: [OsaurusChatMessage],
+        temperature: Double? = nil
+      ) async throws -> OsaurusChatCompletionResponse {
         var request = client.buildRequest(path: "v1/chat/completions", method: "POST")
         let payload = OsaurusChatCompletionRequest(
-          model: model, messages: messages, temperature: temperature)
+          model: model,
+          messages: messages,
+          temperature: temperature)
         request.httpBody = try JSONEncoder().encode(payload)
 
         let (data, resp) = try await client.session.data(for: request)
@@ -316,7 +320,10 @@ final class Osaurus {
 
         // Encode with stream=true
         let payload = OsaurusChatCompletionStreamRequest(
-          model: model, messages: messages, temperature: temperature, stream: true)
+          model: model,
+          messages: messages,
+          temperature: temperature,
+          stream: true)
         request.httpBody = try? JSONEncoder().encode(payload)
 
         return AsyncThrowingStream { continuation in
