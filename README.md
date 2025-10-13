@@ -74,11 +74,15 @@ brew install osaurus
 
 ## Installation
 
+download the latest `.dmg`
+
+Drag into Applications, launch, and press Control + T to open the Quick Actions HUD.
+
+## Development & Debugging
+
 1. Clone the repository
 2. Open `tweaks.xcodeproj` in Xcode
 3. Build and run (Cmd+R)
-
-## Development & Debugging
 
 ### Quick Start for Debug Builds
 
