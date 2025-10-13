@@ -54,10 +54,7 @@ brew install osaurus
 
    - Click on the Osaurus menu bar icon
    - Go to "Model Gallery" or "Downloads"
-   - Choose a model. Recommended options:
-     - **For beginners**: `Llama 3.2 3B Instruct 4bit` (fast, good quality)
-     - **For better quality**: `Qwen 2.5 7B Instruct 4bit` (slower, more capable)
-     - **For speed**: `Phi 3.5 Mini Instruct 4bit` (very fast, decent quality)
+   - Choose a model. We recommend: 👉 `gemma-3n-E4B-it-lm-4bit` on [Hugging Face](https://huggingface.co/mlx-community/gemma-3n-E4B-it-lm-4bit)
    - Click "Download" and wait for it to complete
 
 3. **Verify it's Running**:
