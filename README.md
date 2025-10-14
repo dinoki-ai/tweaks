@@ -7,6 +7,10 @@
 [![Apple Silicon](https://img.shields.io/badge/Apple%20Silicon-Required-red.svg)](https://support.apple.com/en-us/HT211814)
 [![Downloads](https://img.shields.io/github/downloads/dinoki-ai/tweaks/total.svg)](https://github.com/dinoki-ai/tweaks/releases)
 
+<p align="center">
+<img width="452" height="572" alt="Screenshot 2025-10-14 at 5 51 03 AM" src="https://github.com/user-attachments/assets/66c222e1-11e3-42f4-87c1-0d5c8bdcdf73" />
+</p>
+
 AI‑powered text enhancement for macOS. Instantly rewrite, rephrase, or refine any text from your clipboard — all in one tap.
 
 Every copy deserves a tweak.
